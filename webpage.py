@@ -4,7 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from utils import setup_logging
+from log import setup_logging
 
 log = setup_logging(__name__, 'DEBUG')
 
@@ -17,10 +17,7 @@ def _browser_options(options):
 
 
 class WebPage:
-    def __init__(self, default_delay):
-        self._default_delay = default_delay
-
-    def wait_for_element(self, value, by=By.CLASS_NAME, delay=None):
+    def wait_for_elements(self, value, by=By.CLASS_NAME, delay=None):
         items = None
         delay = self._default_delay if delay is None else delay
         try:
