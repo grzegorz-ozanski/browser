@@ -27,6 +27,10 @@ class WebPage:
             pass
         return items
 
+    def wait_for_element(self, value, by=By.CLASS_NAME, delay=None):
+        items = self.wait_for_elements(value, by, delay)
+        return items[0] if items is not None else None
+
     def wait_for_ajax(self, delay=None):
         delay = self._default_delay if delay is None else delay
         wait = WebDriverWait(self, delay)
