@@ -37,7 +37,6 @@ class WebPage:
             pass
         return True
 
-
 class Remote(webdriver.Remote, WebPage):
     def __init__(self, url, options, default_delay):
         self._default_delay = default_delay
