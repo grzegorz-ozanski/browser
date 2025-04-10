@@ -32,12 +32,109 @@ class BrowserBase(WebDriver):
         self.browser = None
         self._default_delay = delay
 
-    def wait_for_load(self):
+    def wait_for_page_load_completed(self):
         state = None
         while state != "complete":
             state = self.browser.execute_script('return document.readyState')
             log.debug(state)
             sleep(0.1)
+
+    def wait_for_page_inactive(self, timeout=30):
+        script = """
+            return new Promise(resolve => {
+                const observer = new MutationObserver(mutations => {
+                    // Use a timer to detect when mutations have stopped for 1 second
+                    if (window._mutationTimer) {
+                        clearTimeout(window._mutationTimer);
+                    }
+                    window._mutationTimer = setTimeout(() => {
+                        observer.disconnect();
+                        resolve(true);
+                    }, 1000);
+                });
+                observer.observe(document.body, {
+                    childList: true, 
+                    attributes: true,
+                    subtree: true
+                });
+                // Set a timeout for the maximum wait time
+                setTimeout(() => {
+                    observer.disconnect();
+                    resolve(false);
+                }, """ + str(timeout * 1000) + """);
+            });
+        """
+        return self.browser.execute_script(script)
+
+    def wait_for_network_inactive(self, timeout=30):
+        # Additional check for network activity
+        network_idle_script = """
+            return new Promise(resolve => {
+                // Use Performance API to check if resources are still loading
+                let lastResourceCount = performance.getEntriesByType('resource').length;
+
+                const checkResources = () => {
+                    const currentCount = performance.getEntriesByType('resource').length;
+                    if (currentCount === lastResourceCount) {
+                        // No new resources in the last second
+                        resolve(true);
+                    } else {
+                        lastResourceCount = currentCount;
+                        setTimeout(checkResources, 1000);
+                    }
+                };
+
+                setTimeout(checkResources, 1000);
+                // Fallback timeout
+                setTimeout(() => resolve(false), """ + str((timeout - 4) * 1000) + """);
+            });
+        """
+        self.browser.execute_script(network_idle_script)
+
+        # Finally, wait a short time for any final rendering or initialization
+        sleep(0.5)
+
+    def wait_for_element_inactive(self, selector, timeout=10):
+        """Wait for an element to stop changing position and size.
+        :param selector: CSS selector. Valid examples:
+                            ID selector: "#main-content"
+                            Class selector: ".product-card"
+                            Element type selector: "button"
+                            Attribute selector: "[data-test-id='submit-button']"
+                            Descendant selector: ".container .item"
+                            Complex selector: "div.results > ul > li:nth-child(3)"
+                            Multiple selectors: "header nav, .sidebar, #footer"
+        :param timeout:
+        :return:
+        """
+        script = """
+            const selector = arguments[0];
+            return new Promise(resolve => {
+                const element = document.querySelector(selector);
+                if (!element) {
+                    resolve(false);
+                    return;
+                }
+
+                let lastRect = element.getBoundingClientRect();
+                const checkStability = () => {
+                    const currentRect = element.getBoundingClientRect();
+                    if (currentRect.top === lastRect.top && 
+                        currentRect.left === lastRect.left &&
+                        currentRect.width === lastRect.width &&
+                        currentRect.height === lastRect.height) {
+                        resolve(true);
+                    } else {
+                        lastRect = currentRect;
+                        setTimeout(checkStability, 100);
+                    }
+                };
+
+                setTimeout(checkStability, 100);
+                setTimeout(() => resolve(false), """ + str(timeout * 1000) + """);
+            });
+        """
+        return self.browser.execute_script(script, selector)
 
     def wait_for_elements(self, value, by=By.CLASS_NAME, delay=None):
         items = None
