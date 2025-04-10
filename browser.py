@@ -2,7 +2,6 @@ from log import setup_logging
 from time import sleep
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import Remote, Chrome
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
