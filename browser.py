@@ -179,6 +179,10 @@ class BrowserBase(WebDriver):
                 return item
         return None
 
+    def click_element(self, by, value):
+        element = self.browser.find_element(by, value)
+        self.browser.execute_script("arguments[0].click()", element)
+
 
 class Browser(BrowserBase):
 
