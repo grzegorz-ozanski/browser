@@ -136,7 +136,7 @@ class BrowserBase(WebDriver):
         """
         return self.browser.execute_script(script, selector)
 
-    def wait_for_elements(self, value, by=By.CLASS_NAME, delay=None):
+    def wait_for_elements(self, by, value, delay=None):
         items = None
         delay = self._default_delay if delay is None else delay
         try:
@@ -146,18 +146,18 @@ class BrowserBase(WebDriver):
             pass
         return items
 
-    def wait_for_element(self, value, by=By.CLASS_NAME, delay=None):
-        items = self.wait_for_elements(value, by, delay)
+    def wait_for_element(self, by, value, delay=None):
+        items = self.wait_for_elements(by, value, delay)
         return items[0] if items is not None else None
 
-    def wait_for_element_ex(self, value, by=By.CLASS_NAME, delay=None, retries=3):
+    def wait_for_element_ex(self, by, value, delay=None, retries=3):
         items = None
         while items is None and retries > 0:
-            items = self.wait_for_elements(value, by, delay)
+            items = self.wait_for_elements(by, value, delay)
             retries -= 1
         return items[0] if items is not None else None
 
-    def find_element_ex(self, by=By.ID, value=None, query=None):
+    def find_element_ex(self, by, value, query=None):
         items = self.browser.find_elements(by, value)
         ops = {'=': lambda x, y: x == y,
                '!=': lambda x, y: x != y
