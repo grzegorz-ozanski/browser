@@ -186,32 +186,31 @@ class BrowserBase(WebDriver):
 
     def goto_url_forcefully(self, url, close_old_tab=True):
         """
-        Przechodzi pod wskazany URL w nowej karcie.
+        Opens URL in a new browser card
 
-        :param driver: obiekt WebDriver
-        :param url: docelowy adres URL
-        :param close_old_tab: czy zamknąć starą kartę (domyślnie True)
+        :param url: address
+        :param close_old_tab: close old tab (default True)
         """
         try:
             old_tab = self.browser.current_window_handle
 
-            # Otwórz nową pustą kartę
+            # Open a new empty card
             self.browser.execute_script("window.open('');")
 
-            # Przełącz się na nową kartę (ostatnia na liście)
+            # Switch to the new card (it's last on the card list)
             self.browser.switch_to.window(self.browser.window_handles[-1])
             self.browser.get(url)
 
-            # Zamknij starą kartę, jeśli trzeba
+            # Close the old card, if requested
             if close_old_tab and old_tab != self.browser.current_window_handle:
                 self.browser.switch_to.window(old_tab)
                 self.browser.close()
 
-                # Wróć do nowej karty
+                # Switch to the card opened above
                 self.browser.switch_to.window(self.browser.window_handles[-1])
 
         except Exception as e:
-            print(f"Błąd podczas przechodzenia do {url}: {e}")
+            print(f"Error navigating to '{url}': {e}")
 
 
 class Browser(BrowserBase):
