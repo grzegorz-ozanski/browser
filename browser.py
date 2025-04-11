@@ -184,6 +184,36 @@ class BrowserBase(WebDriver):
         self.browser.execute_script("arguments[0].click()", element)
 
 
+    def goto_url_forcefully(self, url, close_old_tab=True):
+        """
+        Przechodzi pod wskazany URL w nowej karcie.
+
+        :param driver: obiekt WebDriver
+        :param url: docelowy adres URL
+        :param close_old_tab: czy zamknąć starą kartę (domyślnie True)
+        """
+        try:
+            old_tab = self.browser.current_window_handle
+
+            # Otwórz nową pustą kartę
+            self.browser.execute_script("window.open('');")
+
+            # Przełącz się na nową kartę (ostatnia na liście)
+            self.browser.switch_to.window(self.browser.window_handles[-1])
+            self.browser.get(url)
+
+            # Zamknij starą kartę, jeśli trzeba
+            if close_old_tab and old_tab != self.browser.current_window_handle:
+                self.browser.switch_to.window(old_tab)
+                self.browser.close()
+
+                # Wróć do nowej karty
+                self.browser.switch_to.window(self.browser.window_handles[-1])
+
+        except Exception as e:
+            print(f"Błąd podczas przechodzenia do {url}: {e}")
+
+
 class Browser(BrowserBase):
 
     def __init__(self, url="http://127.0.0.1:9515", delay=10, options=None, binary_location=''):
