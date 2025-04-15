@@ -1,7 +1,7 @@
 from log import setup_logging
 from time import sleep
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver import Remote, Chrome
+from selenium.webdriver import Remote, Chrome, ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
@@ -81,6 +81,7 @@ class BrowserBase(WebDriver):
         return items[0] if items is not None else None
 
     def find_element_ex(self, by, value, query=None):
+        # TODO: Should be removed and replaced by equivalent XPath expressions
         items = self.browser.find_elements(by, value)
         ops = {'=': lambda x, y: x == y,
                '!=': lambda x, y: x != y
@@ -107,8 +108,16 @@ class BrowserBase(WebDriver):
         element = self.browser.find_element(by, value)
         self.browser.execute_script("arguments[0].click()", element)
 
+    def wait_for_elment_disappear(self, by, value):
+        WebDriverWait(self.browser, 10).until(
+            EC.invisibility_of_element_located((by, value))
+        )
 
-    def goto_url_forcefully(self, url, close_old_tab=True):
+    def open_dropdown_menu(self, by, value):
+        menu = self.browser.wait_for_element(by, value)
+        ActionChains(self.browser).move_to_element(menu).perform()
+
+    def force_get(self, url, close_old_tab=True):
         """
         Opens URL in a new browser card
 
