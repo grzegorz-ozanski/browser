@@ -66,48 +66,6 @@ class BrowserBase(WebDriver):
         # Finally, wait a short time for any final rendering or initialization
         sleep(0.5)
 
-    def wait_for_element_inactive(self, selector, timeout=10):
-        """Wait for an element to stop changing position and size.
-        :param selector: CSS selector. Valid examples:
-                            ID selector: "#main-content"
-                            Class selector: ".product-card"
-                            Element type selector: "button"
-                            Attribute selector: "[data-test-id='submit-button']"
-                            Descendant selector: ".container .item"
-                            Complex selector: "div.results > ul > li:nth-child(3)"
-                            Multiple selectors: "header nav, .sidebar, #footer"
-        :param timeout:
-        :return:
-        """
-        script = """
-            const selector = arguments[0];
-            return new Promise(resolve => {
-                const element = document.querySelector(selector);
-                if (!element) {
-                    resolve(false);
-                    return;
-                }
-
-                let lastRect = element.getBoundingClientRect();
-                const checkStability = () => {
-                    const currentRect = element.getBoundingClientRect();
-                    if (currentRect.top === lastRect.top && 
-                        currentRect.left === lastRect.left &&
-                        currentRect.width === lastRect.width &&
-                        currentRect.height === lastRect.height) {
-                        resolve(true);
-                    } else {
-                        lastRect = currentRect;
-                        setTimeout(checkStability, 100);
-                    }
-                };
-
-                setTimeout(checkStability, 100);
-                setTimeout(() => resolve(false), """ + str(timeout * 1000) + """);
-            });
-        """
-        return self.browser.execute_script(script, selector)
-
     def wait_for_elements(self, by, value, delay=None):
         items = None
         delay = self._default_delay if delay is None else delay
@@ -120,13 +78,6 @@ class BrowserBase(WebDriver):
 
     def wait_for_element(self, by, value, delay=None):
         items = self.wait_for_elements(by, value, delay)
-        return items[0] if items is not None else None
-
-    def wait_for_element_ex(self, by, value, delay=None, retries=3):
-        items = None
-        while items is None and retries > 0:
-            items = self.wait_for_elements(by, value, delay)
-            retries -= 1
         return items[0] if items is not None else None
 
     def find_element_ex(self, by, value, query=None):
