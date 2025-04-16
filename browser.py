@@ -114,7 +114,7 @@ class BrowserBase(WebDriver):
         )
 
     def open_dropdown_menu(self, by, value):
-        menu = self.browser.wait_for_element(by, value)
+        menu = self.wait_for_element(by, value)
         ActionChains(self.browser).move_to_element(menu).perform()
 
     def force_get(self, url, close_old_tab=True):
