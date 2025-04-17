@@ -1,10 +1,9 @@
 import concurrent.futures
 from datetime import datetime
-
+from time import sleep
 from selenium.webdriver.remote.webelement import WebElement
 
-from log import setup_logging
-from time import sleep
+from .log import setup_logging
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import Remote, Chrome, ActionChains
 from selenium.webdriver.support import expected_conditions as EC

@@ -9,6 +9,3 @@ def setup_logging(name, level, formatting="%(levelname)s:%(name)s %(asctime)s %(
     ch.setFormatter(logging.Formatter(formatting))
     log.addHandler(ch)
     return log
-
-
-setup_logging(__name__, logging.DEBUG)
