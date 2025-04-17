@@ -1,4 +1,8 @@
 import concurrent.futures
+from datetime import datetime
+
+from selenium.webdriver.remote.webelement import WebElement
+
 from log import setup_logging
 from time import sleep
 from selenium.webdriver.chrome.options import Options
@@ -142,7 +146,20 @@ class BrowserBase(WebDriver):
         element = self.browser.find_element(by, value)
         self.browser.execute_script("arguments[0].click()", element)
 
-    def wait_for_elment_disappear(self, by, value):
+    def trace_click(self, element: WebElement, ignore_exception = False):
+        try:
+            element.click()
+        except Exception as e:
+            file_name = f"{datetime.today().strftime('%Y-%m-%d %H-%M-%S')} {element.tag_name} error.png"
+            element.screenshot(file_name)
+            print("Error clicking element:")
+            print("Tag:", element.tag_name)
+            print("HTML:", element.get_attribute('outerHTML'))
+            print("Text:", element.text)
+            if not ignore_exception:
+                raise
+
+    def wait_for_element_disappear(self, by, value):
         WebDriverWait(self.browser, 10).until(
             EC.invisibility_of_element_located((by, value))
         )
