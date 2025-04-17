@@ -43,7 +43,7 @@ class BrowserBase(WebDriver):
             log.debug(state)
             sleep(0.1)
 
-    def wait_for_page_inactive(self, timeout=10):
+    def wait_for_page_inactive(self, timeout=30):
         script = """
             return new Promise(resolve => {
                 const observer = new MutationObserver(mutations => {
