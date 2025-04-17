@@ -1,3 +1,4 @@
+import concurrent.futures
 from log import setup_logging
 from time import sleep
 from selenium.webdriver.chrome.options import Options
@@ -37,6 +38,39 @@ class BrowserBase(WebDriver):
             state = self.browser.execute_script('return document.readyState')
             log.debug(state)
             sleep(0.1)
+
+    def wait_for_page_inactive(self, timeout=10):
+        script = """
+            return new Promise(resolve => {
+                const observer = new MutationObserver(mutations => {
+                    // Use a timer to detect when mutations have stopped for 1 second
+                    if (window._mutationTimer) {
+                        clearTimeout(window._mutationTimer);
+                    }
+                    window._mutationTimer = setTimeout(() => {
+                        observer.disconnect();
+                        resolve(true);
+                    }, 1000);
+                });
+                observer.observe(document.body, {
+                    childList: true, 
+                    attributes: true,
+                    subtree: true
+                });
+                // Set a timeout for the maximum wait time
+                setTimeout(() => {
+                    observer.disconnect();
+                    resolve(false);
+                }, """ + str(timeout * 1000) + """);
+            });
+        """
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(self.browser.execute_script, script)
+            try:
+                return future.result(timeout=timeout + 2)  # mały zapas
+            except concurrent.futures.TimeoutError:
+                log.debug(f"Timeout {timeout}(s) expired waiting for page to become inactive!")
+                return False
 
     def wait_for_network_inactive(self, timeout=30):
         # Additional check for network activity
