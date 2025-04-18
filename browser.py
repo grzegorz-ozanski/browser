@@ -1,49 +1,85 @@
+"""
+    Wrapper class for Selenium Webdriver
+"""
 import concurrent.futures
 from datetime import datetime
 from time import sleep
-from selenium.webdriver.remote.webelement import WebElement
+from typing import List, Any
 
-from .log import setup_logging
-from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Remote, Chrome, ActionChains
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.remote.webdriver import WebDriver
-import re
+from selenium.webdriver.chrome.service import Service
+
+from .log import setup_logging
 
 log = setup_logging(__name__, 'DEBUG')
 
 
-def _browser_options(options):
-    driver_options = Options()
-    for opt in options:
-        driver_options.add_argument(opt)
-    return driver_options
+def _browser_factory(webdriver_class: type[Chrome | Remote],
+                     url: str,
+                     options: List[str],
+                     binary_location: str) -> Chrome | Remote:
+    """
+    Create webriver instance of a specified class
 
-def _browser_factory(webdriver_class, url, options, binary_location):
+    :param webdriver_class: webdriver class (either Chrome or Remote)
+    :param url: webdriver URL (link ot a running instance or path to the executable)
+    :param options: webdriver options
+    :param binary_location: webdriver binary location
+
+    :return: webdriver object instance
+    """
     if options is None:
         options = []
-    driver_options = _browser_options(options)
+
+    driver_options = Options()
+
+    for opt in options:
+        driver_options.add_argument(opt)
     if binary_location:
         driver_options.binary_location = binary_location
-    return webdriver_class(url, options=driver_options)
+    if url:
+        service = Service(executable_path=url)
+    else:
+        service = None
+    return webdriver_class(service=service, options=driver_options)
+
 
 # noinspection PyMissingConstructor
 class BrowserBase(WebDriver):
-    def __init__(self, delay):
-        self.browser = None
-        self._default_delay = delay
+    """
+    Web driver extension class - base
+    """
 
-    def wait_for_page_load_completed(self):
+    def __init__(self, timeout: int):
+        self.browser = None
+        self._default_timeout = timeout
+
+    def wait_for_page_load_completed(self) -> None:
+        """
+        Wait untli page is full loaded, lightest version (document ready state is 'complete')
+        """
         state = None
-        while state != "complete":
+        while state != 'complete':
             state = self.browser.execute_script('return document.readyState')
             log.debug(state)
             sleep(0.1)
 
-    def wait_for_page_inactive(self, timeout=30):
-        script = """
+    def wait_for_page_inactive(self, timeout: int | None = None) -> Any:
+        """
+        Wait untli page is full loaded, more heavy version (DOM stopped changing)
+
+        :param timeout: timeout or None if default timeout should be used
+        :return: anything returned by browser.execute_stript, or False if timeout occured
+        """
+
+        timeout = self._default_timeout if timeout is None else timeout
+        script = '''
             return new Promise(resolve => {
                 const observer = new MutationObserver(mutations => {
                     // Use a timer to detect when mutations have stopped for 1 second
@@ -64,20 +100,27 @@ class BrowserBase(WebDriver):
                 setTimeout(() => {
                     observer.disconnect();
                     resolve(false);
-                }, """ + str(timeout * 1000) + """);
+                }, ''' + str(timeout * 1000) + ''');
             });
-        """
+        '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(self.browser.execute_script, script)
             try:
-                return future.result(timeout=timeout + 2)  # mały zapas
+                return future.result(timeout=timeout + 2)
             except concurrent.futures.TimeoutError:
-                log.debug(f"Timeout {timeout}(s) expired waiting for page to become inactive!")
+                log.debug(f'Timeout {timeout}(s) expired waiting for page to become inactive!')
                 return False
 
-    def wait_for_network_inactive(self, timeout=30):
+    def wait_for_network_inactive(self, timeout: int | None = None) -> None:
+        """
+        Wait untli page is full loaded by checking if any network activity is stopped
+
+        :param timeout: timeout or None if default timeout should be used
+        :return: anything returned by browser.execute_stript, or False if timeout occured
+        """
         # Additional check for network activity
-        network_idle_script = """
+        timeout = self._default_timeout if timeout is None else timeout
+        network_idle_script = '''
             return new Promise(resolve => {
                 // Use Performance API to check if resources are still loading
                 let lastResourceCount = performance.getEntriesByType('resource').length;
@@ -95,90 +138,113 @@ class BrowserBase(WebDriver):
 
                 setTimeout(checkResources, 1000);
                 // Fallback timeout
-                setTimeout(() => resolve(false), """ + str((timeout - 4) * 1000) + """);
+                setTimeout(() => resolve(false), ''' + str((timeout - 4) * 1000) + ''');
             });
-        """
+        '''
         self.browser.execute_script(network_idle_script)
 
         # Finally, wait a short time for any final rendering or initialization
         sleep(0.5)
 
-    def wait_for_elements(self, by, value, delay=None):
+    def wait_for_elements(self, by: str, value: str, timeout: int | None = None) -> List[WebElement] | None:
+        """
+        Wait until all matching elements become visible, or timeout expires
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if default timeout should be used
+
+        :return: list of found WebElements or None if timeout expired
+        """
         items = None
-        delay = self._default_delay if delay is None else delay
+        timeout = self._default_timeout if timeout is None else timeout
         try:
-            items = WebDriverWait(self, delay).until(
+            items = WebDriverWait(self, timeout).until(
                 EC.visibility_of_all_elements_located((by, value)))
         except TimeoutException:
             pass
         return items
 
-    def wait_for_element(self, by, value, delay=None):
-        items = self.wait_for_elements(by, value, delay)
+    def wait_for_element(self, by: str, value: str, timeout=None) -> WebElement:
+        """
+        Wait until all matching elements become visible, or timeout expires, then return first one
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: waiting timeout
+
+        :return: WebElement found or None if timeout expired
+        """
+        items = self.wait_for_elements(by, value, timeout)
         return items[0] if items is not None else None
 
-    def find_element_ex(self, by, value, query=None):
-        # TODO: Should be removed and replaced by equivalent XPath expressions
-        items = self.browser.find_elements(by, value)
-        ops = {'=': lambda x, y: x == y,
-               '!=': lambda x, y: x != y
-               }
-        operators = ''.join(set([i for items in ops.keys() for i in items]))
-        m = re.match(f"([^{operators}]+?)\\s*([{operators}]+)\\s*([^{operators}]+)", query)
-        property_name = m[1]
-        property_value = None
-        expected_value = m[3]
-        property_operator = m[2]
-        for item in items:
-            try:
-                property_value = getattr(item, property_name)
-            except AttributeError:
-                try:
-                    property_value = item.get_attribute(property_name)
-                except AttributeError:
-                    pass
-            if ops[property_operator](property_value, expected_value):
-                return item
-        return None
 
-    def click_element(self, by, value):
+    def click_element(self, by: str, value: str) -> None:
+        """
+        Force click element, ignoring any elements that may overlap it
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+
+        """
         element = self.browser.find_element(by, value)
-        self.browser.execute_script("arguments[0].click()", element)
+        self.browser.execute_script('arguments[0].click()', element)
 
-    def trace_click(self, element: WebElement, ignore_exception = False):
+    @staticmethod
+    def trace_click(element: WebElement, ignore_exception: bool = False) -> None:
+        """
+        Click provided WebElement and save its screenshot if click fails
+
+        :param element: WebElement
+        :param ignore_exception: raise exception if True, ignore if False (default: False)
+        :raises any exception caused by element.click() if ignore_exception is set to False (default)
+        """
         try:
             element.click()
-        except Exception as e:
-            file_name = f"{datetime.today().strftime('%Y-%m-%d %H-%M-%S')} {element.tag_name} error.png"
+        except Exception:
+            file_name = f'{datetime.today().strftime("%Y-%m-%d %H-%M-%S")} {element.tag_name} error.png'
             element.screenshot(file_name)
-            print("Error clicking element:")
-            print("Tag:", element.tag_name)
-            print("HTML:", element.get_attribute('outerHTML'))
-            print("Text:", element.text)
+            print('Error clicking element:')
+            print(f'Tag: {element.tag_name}')
+            print(f'HTML: {element.get_attribute("outerHTML")}')
+            print(f'Text: {element.text}')
             if not ignore_exception:
                 raise
 
-    def wait_for_element_disappear(self, by, value):
-        WebDriverWait(self.browser, 10).until(
+    def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> None:
+        """
+        Wait until web element disappear or timeout expires
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if default timeout should be used
+        """
+        timeout = self._default_timeout if timeout is None else timeout
+        WebDriverWait(self.browser, timeout).until(
             EC.invisibility_of_element_located((by, value))
         )
 
-    def open_dropdown_menu(self, by, value):
+    def open_dropdown_menu(self, by: str, value: str) -> None:
+        """
+        Opens dropdown menu
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        """
         menu = self.wait_for_element(by, value)
         ActionChains(self.browser).move_to_element(menu).perform()
 
-    def force_get(self, url, close_old_tab=True):
+    def force_get(self, url: str, close_old_tab: bool = True):
         """
         Opens URL in a new browser card
 
         :param url: address
-        :param close_old_tab: close old tab (default True)
+        :param close_old_tab: close old tab (default: True)
         """
         try:
             old_tab = self.browser.current_window_handle
 
             # Open a new empty card
-            self.browser.execute_script("window.open('');")
+            self.browser.execute_script('window.open('');')
 
             # Switch to the new card (it's last on the card list)
             self.browser.switch_to.window(self.browser.window_handles[-1])
@@ -193,28 +259,42 @@ class BrowserBase(WebDriver):
                 self.browser.switch_to.window(self.browser.window_handles[-1])
 
         except Exception as e:
-            print(f"Error navigating to '{url}': {e}")
+            print(f'Error navigating to "{url}": {e}')
 
 
 class Browser(BrowserBase):
+    """
+    Web driver extension class - actual extension. Allows seamless access to both WebDriver
+    and WebDriver extension class attributes
+    """
+    def __init__(self, url: str = 'http://127.0.0.1:9515',
+                 timeout: int = 10,
+                 options: List[str] | None = None,
+                 binary_location: str = ''):
+        super().__init__(timeout)
+        protocol = url.split('://')
 
-    def __init__(self, url="http://127.0.0.1:9515", delay=10, options=None, binary_location=''):
-        super().__init__(delay)
-        protocol = url.split("://")
-
-        if protocol[0] == "http":
-            log.debug("Creating new Browser instance with parameters: driver_url=%s, delay=%d, options=%s"
-                      % (url, delay, options))
+        if protocol[0] == 'http':
+            log.debug(f'Creating new Browser instance with parameters: "{url=}", "{timeout=}", "{options=}"')
             self.browser = _browser_factory(Remote, url, options, binary_location)
-        elif protocol[0] == "file":
-            log.debug("Creating new Browser instance with parameters: <Chrome>, delay=%d, options=%s"
-                      % (delay, options))
+        elif protocol[0] == 'file':
+            log.debug(f'Creating new Browser instance with parameters: "<Chrome>", "{timeout=}", "{options=}"')
             self.browser = _browser_factory(Chrome, protocol[1], options, binary_location)
         else:
-            raise Exception("Unknown protocol: %s" % protocol[0])
+            raise Exception(f'Unknown protocol: "{protocol[0]}"')
 
-    def __getattribute__(self, item):
+    def __getattribute__(self, attribute: str) -> Any:
+        """
+        Try to find the requested attribute first in extension class; if missing,
+        fall back to stored WebDriver class instance
+
+        :param attribute: attribute name
+
+        :return: attribute value found in either parent BrowserBase class or in stored WebDriver instance
+
+        :raises: AttributeError if attribute cannot be found in either locations above
+        """
         try:
-            return super().__getattribute__(item)
+            return super().__getattribute__(attribute)
         except AttributeError:
-            return self.browser.__getattribute__(item)
+            return self.browser.__getattribute__(attribute)
