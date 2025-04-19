@@ -39,6 +39,14 @@ def _browser_factory(webdriver_class: type[Chrome | Remote],
 
     driver_options = Options()
 
+    # for multimedia service login error in headless mode
+    options.append("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+    # Try uncommenting the statements below if changing user-agent is not enough to make page work in headless mode
+    # options.append("disable-blink-features=AutomationControlled")
+    # try:
+    #     options.remove("headless")
+    # except ValueError:
+    #     pass
     for opt in options:
         driver_options.add_argument(opt)
     if binary_location:
@@ -47,7 +55,17 @@ def _browser_factory(webdriver_class: type[Chrome | Remote],
         service = Service(executable_path=url)
     else:
         service = None
-    return webdriver_class(service=service, options=driver_options)
+    # driver_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    # driver_options.add_experimental_option("useAutomationExtension", False)
+    driver = webdriver_class(service=service, options=driver_options)
+    # driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+    #     "source": """
+    #         Object.defineProperty(navigator, 'webdriver', {
+    #             get: () => undefined
+    #         });
+    #     """
+    # })
+    return driver
 
 
 # noinspection PyMissingConstructor
