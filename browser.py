@@ -227,6 +227,19 @@ class BrowserBase(WebDriver):
             EC.invisibility_of_element_located((by, value))
         )
 
+    def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> None:
+        """
+        Wait until web element becomes clickable or timeout expires
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if default timeout should be used
+        """
+        timeout = self._default_timeout if timeout is None else timeout
+        WebDriverWait(self.browser, timeout).until(
+            EC.element_to_be_clickable((by, value))
+        )
+
     def open_dropdown_menu(self, by: str, value: str) -> None:
         """
         Opens dropdown menu
