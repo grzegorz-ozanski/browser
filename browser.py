@@ -4,7 +4,7 @@
 import concurrent.futures
 from datetime import datetime
 from time import sleep
-from typing import List, Any
+from typing import List, Any, Callable
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Remote, Chrome, ActionChains
@@ -52,7 +52,6 @@ def _browser_factory(webdriver_class: type[Chrome | Remote],
     driver = webdriver_class(service=service, options=driver_options)
     return driver
 
-
 # noinspection PyMissingConstructor
 class BrowserBase(WebDriver):
     """
@@ -62,6 +61,38 @@ class BrowserBase(WebDriver):
     def __init__(self, timeout: int):
         self.browser = None
         self._default_timeout = timeout
+
+    @staticmethod
+    def _is_not_obscured(element: WebElement) -> Callable[[WebDriver], bool | WebElement]:
+        """
+        Check if element is not overlapped by other (i.e. available for interaction)
+        :param element: WebElement to check
+        :return: Callable to use as predicate
+        """
+
+        def _check(browser: WebDriver) -> bool | WebElement:
+            """
+            Check if element is not overlapped by other (i.e. available for interaction)
+            :param browser: WebDriver object
+            :return: Web element provided in "element" when becomes available for interaction
+            """
+            script = """
+                const element = arguments[0];
+                const rect = element.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+    
+                // Get the element at the center point
+                const elementAtPoint = document.elementFromPoint(centerX, centerY);
+    
+                // Check if the element or one of its descendants is at that point
+                return (elementAtPoint === element) || element.contains(elementAtPoint) || elementAtPoint.contains(element);
+            """
+            if browser.execute_script(script, element):
+                return element
+            return False
+
+        return _check
 
     def wait_for_page_load_completed(self) -> None:
         """
@@ -170,7 +201,7 @@ class BrowserBase(WebDriver):
 
     def wait_for_element(self, by: str, value: str, timeout=None) -> WebElement:
         """
-        Wait until all matching elements become visible, or timeout expires, then return first one
+        Wait until all matching elements become visible, or timeout expires, then return the first one
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
@@ -190,8 +221,7 @@ class BrowserBase(WebDriver):
         :param value: locator value
 
         """
-        element = self.browser.find_element(by, value)
-        self.browser.execute_script('arguments[0].click()', element)
+        self.browser.execute_script('arguments[0].click()', self.browser.find_element(by, value))
 
     @staticmethod
     def trace_click(element: WebElement, ignore_exception: bool = False) -> None:
@@ -214,7 +244,20 @@ class BrowserBase(WebDriver):
             if not ignore_exception:
                 raise
 
-    def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> None:
+    def safe_click(self, by: str, value: str, timeout: int | None = None, ignore_exception: bool = False) -> None:
+        """
+        Wait until provided WebElement becomes clickable, then click it and save its screenshot if click fails
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if default timeout should be used
+        :param ignore_exception: raise exception if True, ignore if False (default: False)
+        :raises any exception caused by element.click() if ignore_exception is set to False (default)
+        """
+        self.trace_click(
+            self.wait_for_element_clickable(by, value, timeout), ignore_exception)
+
+    def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
         """
         Wait until web element disappear or timeout expires
 
@@ -222,22 +265,28 @@ class BrowserBase(WebDriver):
         :param value: locator value
         :param timeout: timeout or None if default timeout should be used
         """
-        timeout = self._default_timeout if timeout is None else timeout
-        WebDriverWait(self.browser, timeout).until(
+        return WebDriverWait(self.browser, self._default_timeout if timeout is None else timeout).until(
             EC.invisibility_of_element_located((by, value))
         )
 
-    def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> None:
+    def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
         """
         Wait until web element becomes clickable or timeout expires
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
         :param timeout: timeout or None if default timeout should be used
+
+        :return Clickable WebElement reference
         """
         timeout = self._default_timeout if timeout is None else timeout
-        WebDriverWait(self.browser, timeout).until(
-            EC.element_to_be_clickable((by, value))
+
+        return WebDriverWait(self.browser, timeout).until(
+            self._is_not_obscured(
+                WebDriverWait(self.browser, timeout).until(
+                    EC.element_to_be_clickable((by, value))
+                )
+            )
         )
 
     def open_dropdown_menu(self, by: str, value: str) -> None:
@@ -246,8 +295,7 @@ class BrowserBase(WebDriver):
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
         """
-        menu = self.wait_for_element(by, value)
-        ActionChains(self.browser).move_to_element(menu).perform()
+        ActionChains(self.browser).move_to_element(self.wait_for_element(by, value)).perform()
 
     def force_get(self, url: str, close_old_tab: bool = True):
         """
