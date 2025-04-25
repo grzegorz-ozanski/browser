@@ -361,4 +361,8 @@ class Browser(BrowserBase):
         try:
             return super().__getattribute__(attribute)
         except AttributeError:
-            return self.browser.__getattribute__(attribute)
+            try:
+                return self.browser.__getattribute__(attribute)
+            except AttributeError:
+                raise AttributeError(f"Neither '{self.__class__.__name__}' nor '{self.browser.__class__.__name__}' "
+                                     f"object has an attribute '{attribute}' ")
