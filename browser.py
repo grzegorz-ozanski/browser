@@ -379,7 +379,3 @@ class Browser(BrowserBase):
             except AttributeError:
                 raise AttributeError(f"Neither '{self.__class__.__name__}' nor '{self.browser.__class__.__name__}' "
                                      f"object has an attribute '{attribute}' ")
-
-    def __del__(self):
-        self.browser.quit()
-        sleep(5)
