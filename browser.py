@@ -40,7 +40,8 @@ def _browser_factory(webdriver_class: type[Chrome | Remote],
     driver_options = Options()
 
     # for multimedia service login error in headless mode
-    options.append("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+    options.append(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
     for opt in options:
         driver_options.add_argument(opt)
     if binary_location:
@@ -51,6 +52,7 @@ def _browser_factory(webdriver_class: type[Chrome | Remote],
         service = None
     driver = webdriver_class(service=service, options=driver_options)
     return driver
+
 
 # noinspection PyMissingConstructor
 class BrowserBase(WebDriver):
@@ -243,7 +245,8 @@ class BrowserBase(WebDriver):
         try:
             element.click()
         except Exception:
-            file_name = f'{datetime.today().strftime("%Y-%m-%d %H-%M-%S")} {element.tag_name} error.png'
+            timestamp = datetime.today().isoformat(sep=' ', timespec='milliseconds').replace(':', '-')
+            file_name = f'{timestamp} {element.tag_name} error.png'
             element.screenshot(file_name)
             print('Error clicking element:')
             print(f'Tag: {element.tag_name}')
@@ -292,7 +295,9 @@ class BrowserBase(WebDriver):
         return WebDriverWait(self.browser, timeout).until(
             self._is_not_obscured(
                 WebDriverWait(self.browser, timeout).until(
-                    EC.element_to_be_clickable((by, value))
+                    EC.element_to_be_clickable(WebDriverWait(self.browser, timeout).until(
+                        EC.visibility_of_element_located((by, value))
+                    ))
                 )
             )
         )
