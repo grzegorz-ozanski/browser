@@ -212,8 +212,16 @@ class BrowserBase(WebDriver):
         items = self.wait_for_elements(by, value, timeout)
         return items[0] if items is not None else None
 
+    def click_element_with_js(self, element: WebElement) -> None:
+        """
+        Force click element, ignoring any elements that may overlap it
 
-    def click_element(self, by: str, value: str) -> None:
+        :param element: WebElement to click
+
+        """
+        self.browser.execute_script('arguments[0].click()', element)
+
+    def find_and_click_element_with_js(self, by: str, value: str) -> None:
         """
         Force click element, ignoring any elements that may overlap it
 
@@ -221,7 +229,7 @@ class BrowserBase(WebDriver):
         :param value: locator value
 
         """
-        self.browser.execute_script('arguments[0].click()', self.browser.find_element(by, value))
+        self.click_element_with_js(self.browser.find_element(by, value))
 
     @staticmethod
     def trace_click(element: WebElement, ignore_exception: bool = False) -> None:
