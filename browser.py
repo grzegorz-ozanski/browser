@@ -83,12 +83,17 @@ class BrowserBase(WebDriver):
                 const rect = element.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-    
+
                 // Get the element at the center point
                 const elementAtPoint = document.elementFromPoint(centerX, centerY);
-    
-                // Check if the element or one of its descendants is at that point
-                return (elementAtPoint === element) || element.contains(elementAtPoint) || elementAtPoint.contains(element);
+                
+                // Check if either element or elementAtPoint is null
+                if (element && elementAtPoint) {
+                    // Check if the element or one of its descendants is at that point
+                    return (elementAtPoint === element) || element.contains(elementAtPoint) || elementAtPoint.contains(element);
+                } else {
+                    return false;
+                }
             """
             if browser.execute_script(script, element):
                 return element
