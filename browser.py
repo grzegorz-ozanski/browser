@@ -260,10 +260,7 @@ class BrowserBase(WebDriver):
             if not ignore_exception:
                 raise
 
-    def safe_click(self, what: Union[WebElement, tuple[str, str]],
-                   timeout: int | None = None,
-                   ignore_exception: bool = False,
-                   scroll_before_click = False) -> None:
+    def safe_click(self, what: Union[WebElement, tuple[str, str]], timeout: int | None = None, ignore_exception: bool = False) -> None:
         """
         Wait until provided WebElement becomes clickable, then click it and save its screenshot if click fails
 
@@ -272,14 +269,10 @@ class BrowserBase(WebDriver):
                     - WebElement
         :param timeout: timeout or None if default timeout should be used
         :param ignore_exception: raise exception if True, ignore if False (default: False)
-        :param scroll_before_click: scroll to the element before click attempt
         :raises any exception caused by element.click() if ignore_exception is set to False (default)
         """
-        element = self.wait_for_element_clickable(what, timeout)
-        if scroll_before_click:
-            self.scroll_to_element(element)
-        self.trace_click(element, ignore_exception)
-
+        self.trace_click(
+            self.wait_for_element_clickable(what, timeout), ignore_exception)
 
     def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
         """
@@ -307,7 +300,9 @@ class BrowserBase(WebDriver):
         timeout = self._default_timeout if timeout is None else timeout
 
         if isinstance(what, WebElement):
-            element = what
+            element = WebDriverWait(self.browser, timeout).until(
+                lambda driver: EC.element_to_be_clickable(element)
+            )
         else:
             element = WebDriverWait(self.browser, timeout).until(
                 EC.visibility_of_element_located(what)
@@ -356,18 +351,6 @@ class BrowserBase(WebDriver):
         except Exception as e:
             print(f'Error navigating to "{url}": {e}')
 
-    def scroll_to_element(self, what: Union[WebElement, tuple[str, str]]):
-        """
-        Scroll the page so that element is visible
-        :param what: either:
-                    - (locator strategy as provided in selenium.webdriver.common.by.By class, locator value)
-                    - WebElement
-        """
-        if isinstance(what, tuple):
-            element = self.browser.find_element(*what)
-        else:
-            element = what
-        self.browser.execute_script("arguments[0].scrollIntoView(true);", element)
 
 class Browser(BrowserBase):
     """
