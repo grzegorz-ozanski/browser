@@ -352,8 +352,10 @@ class Browser(BrowserBase):
     def __init__(self, url: str = 'http://127.0.0.1:9515',
                  timeout: int = 10,
                  options: List[str] | None = None,
-                 binary_location: str = ''):
+                 binary_location: str = '',
+                 save_trace_logs=False):
         super().__init__(timeout)
+        self.save_trace_logs = save_trace_logs
         protocol = url.split('://')
 
         if protocol[0] == 'http':
