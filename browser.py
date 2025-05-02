@@ -4,7 +4,7 @@
 import concurrent.futures
 from datetime import datetime
 from time import sleep
-from typing import List, Any, Callable, Union
+from typing import List, Any, Callable
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Remote, Chrome, ActionChains
@@ -260,19 +260,18 @@ class BrowserBase(WebDriver):
             if not ignore_exception:
                 raise
 
-    def safe_click(self, what: Union[WebElement, tuple[str, str]], timeout: int | None = None, ignore_exception: bool = False) -> None:
+    def safe_click(self, by: str, value: str, timeout: int | None = None, ignore_exception: bool = False) -> None:
         """
         Wait until provided WebElement becomes clickable, then click it and save its screenshot if click fails
 
-        :param what: either:
-                    - (locator strategy as provided in selenium.webdriver.common.by.By class, locator value)
-                    - WebElement
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
         :param timeout: timeout or None if default timeout should be used
         :param ignore_exception: raise exception if True, ignore if False (default: False)
         :raises any exception caused by element.click() if ignore_exception is set to False (default)
         """
         self.trace_click(
-            self.wait_for_element_clickable(what, timeout), ignore_exception)
+            self.wait_for_element_clickable(by, value, timeout), ignore_exception)
 
     def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
         """
@@ -286,35 +285,28 @@ class BrowserBase(WebDriver):
             EC.invisibility_of_element_located((by, value))
         )
 
-    def wait_for_element_clickable(self, what: Union[WebElement, tuple[str, str]], timeout: int | None = None) -> bool | WebElement:
+    def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
         """
         Wait until web element becomes clickable or timeout expires
 
-        :param what: either:
-                    - (locator strategy as provided in selenium.webdriver.common.by.By class, locator value)
-                    - WebElement
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
         :param timeout: timeout or None if default timeout should be used
 
         :return Clickable WebElement reference
         """
         timeout = self._default_timeout if timeout is None else timeout
 
-        if isinstance(what, WebElement):
-            element = WebDriverWait(self.browser, timeout).until(
-                lambda driver: EC.element_to_be_clickable(element)
-            )
-        else:
-            element = WebDriverWait(self.browser, timeout).until(
-                EC.visibility_of_element_located(what)
-            )
-
-        element = WebDriverWait(self.browser, timeout).until(
-            EC.element_to_be_clickable(element)
-        )
-
         return WebDriverWait(self.browser, timeout).until(
-            self._is_not_obscured(element)
+            self._is_not_obscured(
+                WebDriverWait(self.browser, timeout).until(
+                    EC.element_to_be_clickable(WebDriverWait(self.browser, timeout).until(
+                        EC.visibility_of_element_located((by, value))
+                    ))
+                )
+            )
         )
+
     def open_dropdown_menu(self, by: str, value: str) -> None:
         """
         Opens dropdown menu
