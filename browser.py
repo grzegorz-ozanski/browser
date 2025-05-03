@@ -343,6 +343,23 @@ class BrowserBase(WebDriver):
         except Exception as e:
             print(f'Error navigating to "{url}": {e}')
 
+    @staticmethod
+    def dump_element(element: WebElement) -> None:
+        """
+        Dump web element data
+        :param element: WebElement
+        """
+        try:
+            print(f"Tag name: {element.tag_name}")
+            print(f"Text content: {element.text}")
+            print(f"Attributes:")
+            for attribute in element.get_property('attributes'):
+                # noinspection PyTypeChecker
+                print(f"  - {attribute['name']} = {attribute['value']}")
+            print(f"Location on page: {element.location}")
+            print(f"Size: {element.size}")
+        except Exception as ex:
+            print(f"Could not gather detailed information for element: {ex}")
 
 class Browser(BrowserBase):
     """
