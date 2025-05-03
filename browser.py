@@ -2,6 +2,7 @@
     Wrapper class for Selenium Webdriver
 """
 import concurrent.futures
+import os
 from datetime import datetime
 from time import sleep
 from typing import List, Any, Callable
@@ -63,6 +64,18 @@ class BrowserBase(WebDriver):
     def __init__(self, timeout: int):
         self.browser = None
         self._default_timeout = timeout
+        self._error_log_dir = "."
+
+    @property
+    def error_log_dir(self) -> str:
+        """
+        Directory for storing element error logs
+        """
+        return self._error_log_dir
+
+    @error_log_dir.setter
+    def error_log_dir(self, value: str):
+        self._error_log_dir = value
 
     @staticmethod
     def _is_not_obscured(element: WebElement) -> Callable[[WebDriver], bool | WebElement]:
@@ -238,8 +251,7 @@ class BrowserBase(WebDriver):
         """
         self.click_element_with_js(self.browser.find_element(by, value))
 
-    @staticmethod
-    def trace_click(element: WebElement, ignore_exception: bool = False) -> None:
+    def trace_click(self, element: WebElement, ignore_exception: bool = False) -> None:
         """
         Click provided WebElement and save its screenshot if click fails
 
@@ -252,7 +264,8 @@ class BrowserBase(WebDriver):
         except Exception:
             timestamp = datetime.today().isoformat(sep=' ', timespec='milliseconds').replace(':', '-')
             file_name = f'{timestamp} {element.tag_name} error.png'
-            element.screenshot(file_name)
+            os.makedirs(self.error_log_dir, exist_ok=True)
+            element.screenshot(os.path.join(self.error_log_dir, file_name))
             print('Error clicking element:')
             print(f'Tag: {element.tag_name}')
             print(f'HTML: {element.get_attribute("outerHTML")}')
@@ -361,11 +374,13 @@ class BrowserBase(WebDriver):
         except Exception as ex:
             print(f"Could not gather detailed information for element: {ex}")
 
+
 class Browser(BrowserBase):
     """
     Web driver extension class - actual extension. Allows seamless access to both WebDriver
     and WebDriver extension class attributes
     """
+
     def __init__(self, url: str = 'http://127.0.0.1:9515',
                  timeout: int = 10,
                  options: List[str] | None = None,
