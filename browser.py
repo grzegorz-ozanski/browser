@@ -357,11 +357,13 @@ class BrowserBase(WebDriver):
             print(f'Error navigating to "{url}": {e}')
 
     @staticmethod
-    def dump_element(element: WebElement) -> None:
+    def dump_element(element: WebElement | None) -> None:
         """
         Dump web element data
         :param element: WebElement
         """
+        if element is None:
+            return
         try:
             print(f"Tag name: {element.tag_name}")
             print(f"Text content: {element.text}")
@@ -372,7 +374,8 @@ class BrowserBase(WebDriver):
             print(f"Location on page: {element.location}")
             print(f"Size: {element.size}")
         except Exception as ex:
-            print(f"Could not gather detailed information for element: {ex}")
+            print(f"Exception occured while gathering detailed information for element {element}. "
+                  f"Details:\n{ex.__class__.__name__}:{str(ex)}")
 
 
 class Browser(BrowserBase):
