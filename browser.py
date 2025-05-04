@@ -10,15 +10,15 @@ from typing import List, Any, Callable
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Remote, Chrome, ActionChains
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.service import Service
 
 from .log import setup_logging
 
-log = setup_logging(__name__, 'DEBUG')
+log = setup_logging(__name__)
 
 
 def _browser_factory(webdriver_class: type[Chrome | Remote],
