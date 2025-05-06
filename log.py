@@ -87,7 +87,7 @@ def setup_logging(name: str) -> logging.Logger:
                                        LOG_CONFIG.level.value,
                                        LOG_CONFIG.formatting.value))
     if LOG_CONFIG.file:
-        handlers.append(_setup_handler(logging.FileHandler(LOG_CONFIG.file.value),
+        handlers.append(_setup_handler(logging.FileHandler(LOG_CONFIG.file.value, encoding='utf-8'),
                                        LOG_CONFIG.level.value,
                                        LOG_CONFIG.formatting.value))
     for handler in handlers:
