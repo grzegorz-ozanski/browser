@@ -5,7 +5,7 @@ import concurrent.futures
 import os
 from datetime import datetime
 from time import sleep
-from typing import List, Any, Callable
+from typing import Any, Callable
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Remote, Chrome, ActionChains
@@ -23,7 +23,7 @@ log = setup_logging(__name__)
 
 def _browser_factory(webdriver_class: type[Chrome | Remote],
                      url: str,
-                     options: List[str],
+                     options: list[str],
                      binary_location: str) -> Chrome | Remote:
     """
     Create webriver instance of a specified class
@@ -200,7 +200,7 @@ class BrowserBase(WebDriver):
         # Finally, wait a short time for any final rendering or initialization
         sleep(0.5)
 
-    def wait_for_elements(self, by: str, value: str, timeout: int | None = None) -> List[WebElement] | None:
+    def wait_for_elements(self, by: str, value: str, timeout: int | None = None) -> list[WebElement] | None:
         """
         Wait until all matching elements become visible, or timeout expires
 
@@ -386,7 +386,7 @@ class Browser(BrowserBase):
 
     def __init__(self, url: str = 'http://127.0.0.1:9515',
                  timeout: int = 10,
-                 options: List[str] | None = None,
+                 options: list[str] | None = None,
                  binary_location: str = '',
                  save_trace_logs=False):
         super().__init__(timeout)
