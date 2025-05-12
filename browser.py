@@ -28,14 +28,14 @@ class Browser(Chrome):
     def __init__(self, chrome_path: str,
                  timeout: int = 10,
                  options: list[str] | None = None,
-                 binary_location: str = '',
+                 chrome_binary_location: str = '',
                  save_trace_logs=False):
         """
 
         :param chrome_path: Chromedriver path
         :param timeout: default timeout for operations
         :param options: options list (string)
-        :param binary_location: Chromedriver binary location
+        :param chrome_binary_location: Chromedriver binary location
         :param save_trace_logs: if 'True', trace logs will be saved
         """
         self.save_trace_logs = save_trace_logs
@@ -53,8 +53,8 @@ class Browser(Chrome):
             'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36')
         for opt in options:
             driver_options.add_argument(opt)
-        if binary_location:
-            driver_options.binary_location = binary_location
+        if chrome_binary_location:
+            driver_options.binary_location = chrome_binary_location
         if chrome_path:
             service = Service(executable_path=chrome_path)
         else:
