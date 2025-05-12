@@ -48,14 +48,14 @@ class LogConfig:
     Logger configuration
     """
     level: EnvironmentValue[str] = field(
-        default_factory=lambda: EnvironmentValue('PAYMENTS_LOG_LEVEL', 'DEBUG'))
+        default_factory=lambda: EnvironmentValue('BROWSER_LOG_LEVEL', 'DEBUG'))
     formatting: EnvironmentValue[str] = field(
-        default_factory=lambda: EnvironmentValue('PAYMENTS_LOG_FORMATTING',
+        default_factory=lambda: EnvironmentValue('BROWSER_LOG_FORMATTING',
                                                  '%(levelname)s:%(name)s %(asctime)s %(message)s'))
     console: EnvironmentValue[bool] = field(
-        default_factory=lambda: EnvironmentValue('PAYMENTS_LOG_TO_CONSOLE', True))
+        default_factory=lambda: EnvironmentValue('BROWSER_LOG_TO_CONSOLE', True))
     file: EnvironmentValue[str] = field(
-        default_factory=lambda: EnvironmentValue('PAYMENTS_LOG_FILENAME', ''))
+        default_factory=lambda: EnvironmentValue('BROWSER_LOG_FILENAME', ''))
 
 
 LOG_CONFIG = LogConfig()
