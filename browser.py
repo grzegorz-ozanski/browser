@@ -8,7 +8,7 @@ from time import sleep
 from typing import Any, Callable
 
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver import Remote, Chrome, ActionChains
+from selenium.webdriver import Chrome, ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -21,50 +21,46 @@ from .log import setup_logging
 log = setup_logging(__name__)
 
 
-def _browser_factory(webdriver_class: type[Chrome | Remote],
-                     url: str,
-                     options: list[str],
-                     binary_location: str) -> Chrome | Remote:
+class Browser(Chrome):
     """
-    Create webriver instance of a specified class
-
-    :param webdriver_class: webdriver class (either Chrome or Remote)
-    :param url: webdriver URL (link ot a running instance or path to the executable)
-    :param options: webdriver options
-    :param binary_location: webdriver binary location
-
-    :return: webdriver object instance
+    Chrome driver extension
     """
-    if options is None:
-        options = []
+    def __init__(self, chrome_path: str,
+                 timeout: int = 10,
+                 options: list[str] | None = None,
+                 binary_location: str = '',
+                 save_trace_logs=False):
+        """
 
-    driver_options = Options()
-
-    # for multimedia service login error in headless mode
-    options.append(
-        'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36')
-    for opt in options:
-        driver_options.add_argument(opt)
-    if binary_location:
-        driver_options.binary_location = binary_location
-    if url:
-        service = Service(executable_path=url)
-    else:
-        service = None
-    driver = webdriver_class(service=service, options=driver_options)
-    return driver
-
-
-# noinspection PyMissingConstructor
-class BrowserBase(WebDriver):
-    """
-    Web driver extension class - base
-    """
-
-    def __init__(self, timeout: int):
-        self.browser = None
+        :param chrome_path: Chromedriver path
+        :param timeout: default timeout for operations
+        :param options: options list (string)
+        :param binary_location: Chromedriver binary location
+        :param save_trace_logs: if 'True', trace logs will be saved
+        """
+        self.save_trace_logs = save_trace_logs
         self._default_timeout = timeout
         self._error_log_dir = '.'
+
+        log.debug(f'Creating new Chrome instance with parameters: "{timeout=}", "{options=}"')
+        if options is None:
+            options = []
+
+        driver_options = Options()
+
+        # for multimedia service login error in headless mode
+        options.append(
+            'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36')
+        for opt in options:
+            driver_options.add_argument(opt)
+        if binary_location:
+            driver_options.binary_location = binary_location
+        if chrome_path:
+            service = Service(executable_path=chrome_path)
+        else:
+            service = None
+
+        super().__init__(service=service, options=driver_options)
 
     @property
     def error_log_dir(self) -> str:
@@ -120,7 +116,7 @@ class BrowserBase(WebDriver):
         """
         state = None
         while state != 'complete':
-            state = self.browser.execute_script('return document.readyState')
+            state = self.execute_script('return document.readyState')
             log.debug(state)
             sleep(0.1)
 
@@ -158,7 +154,7 @@ class BrowserBase(WebDriver):
             });
         '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(self.browser.execute_script, script)
+            future = executor.submit(self.execute_script, script)
             try:
                 return future.result(timeout=timeout + 2)
             except concurrent.futures.TimeoutError:
@@ -195,7 +191,7 @@ class BrowserBase(WebDriver):
                 setTimeout(() => resolve(false), ''' + str((timeout - 4) * 1000) + ''');
             });
         '''
-        self.browser.execute_script(network_idle_script)
+        self.execute_script(network_idle_script)
 
         # Finally, wait a short time for any final rendering or initialization
         sleep(0.5)
@@ -239,7 +235,7 @@ class BrowserBase(WebDriver):
         :param element: WebElement to click
 
         """
-        self.browser.execute_script('arguments[0].click()', element)
+        self.execute_script('arguments[0].click()', element)
 
     def find_and_click_element_with_js(self, by: str, value: str) -> None:
         """
@@ -249,7 +245,7 @@ class BrowserBase(WebDriver):
         :param value: locator value
 
         """
-        self.click_element_with_js(self.browser.find_element(by, value))
+        self.click_element_with_js(self.find_element(by, value))
 
     def trace_click(self, element: WebElement, ignore_exception: bool = False) -> None:
         """
@@ -294,7 +290,7 @@ class BrowserBase(WebDriver):
         :param value: locator value
         :param timeout: timeout or None if default timeout should be used
         """
-        return WebDriverWait(self.browser, self._default_timeout if timeout is None else timeout).until(
+        return WebDriverWait(self, self._default_timeout if timeout is None else timeout).until(
             EC.invisibility_of_element_located((by, value))
         )
 
@@ -310,10 +306,10 @@ class BrowserBase(WebDriver):
         """
         timeout = self._default_timeout if timeout is None else timeout
 
-        return WebDriverWait(self.browser, timeout).until(
+        return WebDriverWait(self, timeout).until(
             self._is_not_obscured(
-                WebDriverWait(self.browser, timeout).until(
-                    EC.element_to_be_clickable(WebDriverWait(self.browser, timeout).until(
+                WebDriverWait(self, timeout).until(
+                    EC.element_to_be_clickable(WebDriverWait(self, timeout).until(
                         EC.visibility_of_element_located((by, value))
                     ))
                 )
@@ -326,7 +322,7 @@ class BrowserBase(WebDriver):
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
         """
-        ActionChains(self.browser).move_to_element(self.wait_for_element(by, value)).perform()
+        ActionChains(self).move_to_element(self.wait_for_element(by, value)).perform()
 
     def force_get(self, url: str, close_old_tab: bool = True):
         """
@@ -336,22 +332,22 @@ class BrowserBase(WebDriver):
         :param close_old_tab: close old tab (default: True)
         """
         try:
-            old_tab = self.browser.current_window_handle
+            old_tab = self.current_window_handle
 
             # Open a new empty card
-            self.browser.execute_script('window.open('');')
+            self.execute_script('window.open('');')
 
             # Switch to the new card (it's last on the card list)
-            self.browser.switch_to.window(self.browser.window_handles[-1])
-            self.browser.get(url)
+            self.switch_to.window(self.window_handles[-1])
+            self.get(url)
 
             # Close the old card, if requested
-            if close_old_tab and old_tab != self.browser.current_window_handle:
-                self.browser.switch_to.window(old_tab)
-                self.browser.close()
+            if close_old_tab and old_tab != self.current_window_handle:
+                self.switch_to.window(old_tab)
+                self.close()
 
                 # Switch to the card opened above
-                self.browser.switch_to.window(self.browser.window_handles[-1])
+                self.switch_to.window(self.window_handles[-1])
 
         except Exception as e:
             print(f'Error navigating to "{url}": {e}')
@@ -376,48 +372,3 @@ class BrowserBase(WebDriver):
         except Exception as ex:
             print(f'Exception occured while gathering detailed information for element {element}. '
                   f'Details:\n{ex.__class__.__name__}:{str(ex)}')
-
-
-class Browser(BrowserBase):
-    """
-    Web driver extension class - actual extension. Allows seamless access to both WebDriver
-    and WebDriver extension class attributes
-    """
-
-    def __init__(self, url: str = 'http://127.0.0.1:9515',
-                 timeout: int = 10,
-                 options: list[str] | None = None,
-                 binary_location: str = '',
-                 save_trace_logs=False):
-        super().__init__(timeout)
-        self.save_trace_logs = save_trace_logs
-        protocol = url.split('://')
-
-        if protocol[0] == 'http':
-            log.debug(f'Creating new Browser instance with parameters: "{url=}", "{timeout=}", "{options=}"')
-            self.browser = _browser_factory(Remote, url, options, binary_location)
-        elif protocol[0] == 'file':
-            log.debug(f'Creating new Browser instance with parameters: "<Chrome>", "{timeout=}", "{options=}"')
-            self.browser = _browser_factory(Chrome, protocol[1], options, binary_location)
-        else:
-            raise Exception(f'Unknown protocol: "{protocol[0]}"')
-
-    def __getattribute__(self, attribute: str) -> Any:
-        """
-        Try to find the requested attribute first in extension class; if missing,
-        fall back to stored WebDriver class instance
-
-        :param attribute: attribute name
-
-        :return: attribute value found in either parent BrowserBase class or in stored WebDriver instance
-
-        :raises: AttributeError if attribute cannot be found in either locations above
-        """
-        try:
-            return super().__getattribute__(attribute)
-        except AttributeError:
-            try:
-                return self.browser.__getattribute__(attribute)
-            except AttributeError:
-                raise AttributeError(f'Neither "{self.__class__.__name__}" nor "{self.browser.__class__.__name__}" '
-                                     f'object has an attribute "{attribute}"')
