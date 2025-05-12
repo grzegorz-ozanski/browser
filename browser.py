@@ -42,7 +42,7 @@ def _browser_factory(webdriver_class: type[Chrome | Remote],
 
     # for multimedia service login error in headless mode
     options.append(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+        'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36')
     for opt in options:
         driver_options.add_argument(opt)
     if binary_location:
@@ -64,7 +64,7 @@ class BrowserBase(WebDriver):
     def __init__(self, timeout: int):
         self.browser = None
         self._default_timeout = timeout
-        self._error_log_dir = "."
+        self._error_log_dir = '.'
 
     @property
     def error_log_dir(self) -> str:
@@ -91,7 +91,7 @@ class BrowserBase(WebDriver):
             :param browser: WebDriver object
             :return: Web element provided in "element" when becomes available for interaction
             """
-            script = """
+            script = '''
                 const element = arguments[0];
                 const rect = element.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
@@ -107,7 +107,7 @@ class BrowserBase(WebDriver):
                 } else {
                     return false;
                 }
-            """
+            '''
             if browser.execute_script(script, element):
                 return element
             return False
@@ -365,17 +365,17 @@ class BrowserBase(WebDriver):
         if element is None:
             return
         try:
-            print(f"Tag name: {element.tag_name}")
-            print(f"Text content: {element.text}")
-            print(f"Attributes:")
+            print(f'Tag name: {element.tag_name}')
+            print(f'Text content: {element.text}')
+            print(f'Attributes:')
             for attribute in element.get_property('attributes'):
                 # noinspection PyTypeChecker
-                print(f"  - {attribute['name']} = {attribute['value']}")
-            print(f"Location on page: {element.location}")
-            print(f"Size: {element.size}")
+                print(f'  - {attribute["name"]} = {attribute["value"]}')
+            print(f'Location on page: {element.location}')
+            print(f'Size: {element.size}')
         except Exception as ex:
-            print(f"Exception occured while gathering detailed information for element {element}. "
-                  f"Details:\n{ex.__class__.__name__}:{str(ex)}")
+            print(f'Exception occured while gathering detailed information for element {element}. '
+                  f'Details:\n{ex.__class__.__name__}:{str(ex)}')
 
 
 class Browser(BrowserBase):
@@ -419,5 +419,5 @@ class Browser(BrowserBase):
             try:
                 return self.browser.__getattribute__(attribute)
             except AttributeError:
-                raise AttributeError(f"Neither '{self.__class__.__name__}' nor '{self.browser.__class__.__name__}' "
-                                     f"object has an attribute '{attribute}' ")
+                raise AttributeError(f'Neither "{self.__class__.__name__}" nor "{self.browser.__class__.__name__}" '
+                                     f'object has an attribute "{attribute}"')
