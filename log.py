@@ -56,7 +56,7 @@ class LogConfig:
         default_factory=lambda: EnvironmentValue('BROWSER_LOG_TO_CONSOLE', True))
     file: EnvironmentValue[str] = field(
         default_factory=lambda: EnvironmentValue('BROWSER_LOG_FILENAME', ''))
-
+    initialized: bool = False
 
 LOG_CONFIG = LogConfig()
 
@@ -87,10 +87,13 @@ def setup_logging(name: str) -> logging.Logger:
                                        LOG_CONFIG.level.value,
                                        LOG_CONFIG.formatting.value))
     if LOG_CONFIG.file:
+        if not LOG_CONFIG.initialized and os.path.exists(LOG_CONFIG.file.value):
+            os.remove(LOG_CONFIG.file.value)
         handlers.append(_setup_handler(logging.FileHandler(LOG_CONFIG.file.value, encoding='utf-8'),
                                        LOG_CONFIG.level.value,
                                        LOG_CONFIG.formatting.value))
     for handler in handlers:
         log.addHandler(handler)
 
+    LOG_CONFIG.initialized = True
     return log
