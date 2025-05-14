@@ -4,8 +4,8 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from distutils.util import strtobool
 from typing import Any, Generic, TypeVar
+from str_to_bool import str_to_bool
 
 T = TypeVar('T', bound=Any)
 
@@ -27,7 +27,7 @@ class EnvironmentValue(Generic[T]):
         if key == 'default':
             self._value_type = type(value)
         elif key == '_value' and self._value_type is bool and value is not None:
-            value = bool(strtobool(str(value)))
+            value = bool(str_to_bool(str(value)))
         super().__setattr__(key, value)
 
     @property
