@@ -13,10 +13,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
+# noinspection PyPep8Naming
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from .log import setup_logging
+from log import setup_logging
+from browseroptions import BrowserOptions
 
 log = setup_logging(__name__)
 
@@ -25,42 +27,30 @@ class Browser(Chrome):
     """
     Chrome driver extension
     """
-    def __init__(self, chrome_path: str,
-                 timeout: int = 10,
-                 options: list[str] | None = None,
-                 chrome_binary_location: str = '',
-                 save_trace_logs=False):
+    def __init__(self, options: BrowserOptions):
         """
 
-        :param chrome_path: Chromedriver path
-        :param timeout: default timeout for operations
-        :param options: options list (string)
-        :param chrome_binary_location: Chromedriver binary location
-        :param save_trace_logs: if 'True', trace logs will be saved
+        :param options: Browser options
         """
-        self.save_trace_logs = save_trace_logs
-        self._default_timeout = timeout
+        self.save_trace_logs = options.save_trace_logs
+        self._default_timeout = options.timeout
         self._error_log_dir = '.'
 
-        log.debug(f'Creating new Chrome instance with parameters: "{timeout=}", "{options=}"')
-        if options is None:
-            options = []
+        log.debug(f'Creating new Chrome instance with parameters: "{options.timeout=}", "{options.driver_options=}"')
 
-        driver_options = Options()
+        chrome_options = Options()
 
-        # for multimedia service login error in headless mode
-        options.append(
-            'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36')
-        for opt in options:
-            driver_options.add_argument(opt)
-        if chrome_binary_location:
-            driver_options.binary_location = chrome_binary_location
-        if chrome_path:
-            service = Service(executable_path=chrome_path)
+        if options.driver_options:
+            for opt in options.driver_options:
+                chrome_options.add_argument(opt)
+        if options.binary_location:
+            chrome_options.binary_location = options.binary_location
+        if options.exe_path:
+            service = Service(executable_path=options.exe_path)
         else:
             service = None
 
-        super().__init__(service=service, options=driver_options)
+        super().__init__(service=service, options=chrome_options)
 
     @property
     def error_log_dir(self) -> str:
@@ -255,6 +245,7 @@ class Browser(Chrome):
         :param ignore_exception: raise exception if True, ignore if False (default: False)
         :raises any exception caused by element.click() if ignore_exception is set to False (default)
         """
+        # noinspection PyBroadException
         try:
             element.click()
         except Exception:
