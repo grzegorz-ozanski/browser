@@ -42,5 +42,4 @@ def setup_logging(name: str) -> logging.Logger:
         log.addHandler(handler)
 
     LOG_CONFIG.initialized = True
-    print(f"setup_logging: {LOG_CONFIG.initialized=}")
     return log
