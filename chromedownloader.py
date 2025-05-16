@@ -27,16 +27,18 @@ def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
     :param output_dir: value to replace the :param archive_dir with when unpacking the archive
     """
     with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
-        for member in zip_file.namelist():
-            if member.startswith(archive_dir + "/") and not member.endswith("/"):
+        for info in zip_file.infolist():
+            if info.filename.startswith(archive_dir + "/") and not info.filename.endswith("/"):
                 # Replace archive_dir prefix with target_dir one
-                relative_path = member[len(archive_dir) + 1:]
+                relative_path = info.filename[len(archive_dir) + 1:]
                 target_path = Path(output_dir, relative_path)
                 os.makedirs(target_path.parent, exist_ok=True)
-                with zip_file.open(member) as src, open(target_path, "wb") as dst:
+                with zip_file.open(info) as src, open(target_path, "wb") as dst:
                     # supress the warning as the result of open() actually is a BufferedWriter
                     shutil.copyfileobj(src, dst)  # type: ignore[arg-type]
-
+                mode = info.external_attr >> 16
+                if mode:
+                    os.chmod(target_path, mode)
 
 class ChromeDownloader:
     """
