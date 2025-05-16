@@ -36,7 +36,7 @@ class Browser(Chrome):
         self._default_timeout = options.timeout
         self._error_log_dir = '.'
 
-        log.debug(f'Creating new Chrome instance with parameters: "{options=}"')
+        log.debug(f'Creating new Chrome instance with parameters: "{options}"')
 
         chrome_options = Options()
 
