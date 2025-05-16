@@ -30,6 +30,9 @@ class BrowserOptions:
         self.timeout = timeout
         self._configure_chromedriver_location(root_path)
 
+    def __repr__(self) -> str:
+        return f'exe_path={self.exe_path}, binary_location={self.binary_location}, driver_options={self.driver_options}, save_trace_logs={self.save_trace_logs}'
+
     def _configure_chromedriver_location(self, root_path: str) -> None:
         """
         Configure Chrome/Chromedriver path per operating system. Expectedy folder layout:
