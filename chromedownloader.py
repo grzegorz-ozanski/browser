@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from .log import setup_logging
+
+log = setup_logging(__name__)
 
 CHROME_API_ENDPOINT_URL = \
     'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json'
@@ -88,6 +91,7 @@ class ChromeDownloader:
         :param where: destination directory
         """
         url = next(item for item in self.downloads[what] if item['platform'] == self.platform_name)['url']
+        log.debug(f'Downloading {what} from {url}')
         response = requests.get(url)
         response.raise_for_status()
         archive_dir = f'{what}-{self.platform_name}'
