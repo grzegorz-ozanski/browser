@@ -17,8 +17,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from browseroptions import BrowserOptions
-from log import setup_logging
+from .browseroptions import BrowserOptions
+from .log import setup_logging
 
 log = setup_logging(__name__)
 

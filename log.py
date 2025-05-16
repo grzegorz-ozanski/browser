@@ -4,7 +4,7 @@
 import logging
 import os
 
-from logconfig import LOG_CONFIG
+from .logconfig import LOG_CONFIG
 
 
 def _setup_handler(handler: logging.Handler,

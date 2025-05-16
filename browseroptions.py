@@ -2,8 +2,8 @@
     Browser options
 """
 from pathlib import Path
-from chromedownloader import ChromeDownloader
-from platforminfo import PlatformInfo
+from .chromedownloader import ChromeDownloader
+from .platforminfo import PlatformInfo
 class BrowserOptions:
     """
     Browser options class
