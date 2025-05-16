@@ -1,8 +1,8 @@
 """
     Browser options
 """
-import pathlib
-
+from pathlib import Path
+from chromedownloader import ChromeDownloader
 
 class BrowserOptions:
     """
@@ -31,27 +31,31 @@ class BrowserOptions:
         self.timeout = timeout
         self._configure_chromedriver_location(system, root_path)
 
-
-    def _configure_chromedriver_location(self, system: str, root_path: str) -> None:
+    def _configure_chromedriver_location(self, platform: str, root_path: str) -> None:
         """
         Configure Chrome/Chromedriver path per operating system. Expectedy folder layout:
         root_path/
-        ├── chromedriver/
-        │   ├── chromedriver[.exe]
-        │   └── chrome/
-        │       ├── <chrome files>
-        │       ├── chrome[.exe]
-        :param system: OS name
+            └── chromedriver/
+                ├── chromedriver[.exe]
+                └── chrome/
+                    ├── <chrome files>
+                    └── chrome[.exe]
+        :param platform: OS platform
         :param root_path: Chrome/Chromedriver root path
         """
-        if system == 'Darwin':  # running on macOS
+        if 'mac' in platform:  # running on macOS
             self.exe_path = "/Users/greggor/Downloads/chromedriver"
-        elif system == 'Windows' or system == 'Linux':
-            chromedriver_root = pathlib.Path(root_path).parent.joinpath('chromedriver').resolve(True)
+        elif 'win' in platform or 'linux' in platform:
+            chromedriver_root = Path(root_path).parent.joinpath('chromedriver')
+            if not chromedriver_root.exists():
+                print(f'Chromedriver not found in "{chromedriver_root}", downloading...')
+                chrome_downloader = ChromeDownloader(platform)
+                chrome_downloader.download_all(chromedriver_root, 'chrome')
+            chromedriver_root = chromedriver_root.resolve(True)
             self.exe_path = f"{chromedriver_root.joinpath('chromedriver')}"
             self.binary_location = str(chromedriver_root.joinpath("chrome").joinpath("chrome"))
-            if system == 'Windows':
+            if platform == 'Windows':
                 self.exe_path += ".exe"
                 self.binary_location += ".exe"
         else:
-            raise NotImplementedError(f"'{system}' is not supported.")
+            raise NotImplementedError(f"'{platform}' is not supported.")
