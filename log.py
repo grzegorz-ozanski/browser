@@ -24,20 +24,20 @@ def setup_logging(name: str) -> logging.Logger:
     :return: logger object
     """
     log = logging.getLogger(name)
-    log.setLevel(LOG_CONFIG.level.value)
+    log.setLevel(LOG_CONFIG.level)
     if log.hasHandlers():
         log.handlers.clear()
     handlers = []
     if LOG_CONFIG.console:
         handlers.append(_setup_handler(logging.StreamHandler(),
-                                       LOG_CONFIG.level.value,
-                                       LOG_CONFIG.formatting.value))
+                                       LOG_CONFIG.level,
+                                       LOG_CONFIG.formatting))
     if LOG_CONFIG.file:
-        if not LOG_CONFIG.initialized and os.path.exists(LOG_CONFIG.file.value):
-            os.remove(LOG_CONFIG.file.value)
-        handlers.append(_setup_handler(logging.FileHandler(LOG_CONFIG.file.value, encoding='utf-8'),
-                                       LOG_CONFIG.level.value,
-                                       LOG_CONFIG.formatting.value))
+        if not LOG_CONFIG.initialized and os.path.exists(LOG_CONFIG.file):
+            os.remove(LOG_CONFIG.file)
+        handlers.append(_setup_handler(logging.FileHandler(LOG_CONFIG.file, encoding='utf-8'),
+                                       LOG_CONFIG.level,
+                                       LOG_CONFIG.formatting))
     for handler in handlers:
         log.addHandler(handler)
 

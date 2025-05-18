@@ -1,57 +1,78 @@
+"""
+    Default logger configuration, overridable with specified environment variables
+"""
+import logging
 import os
-from dataclasses import dataclass, field
-from typing import Any, Generic, TypeVar
+from dataclasses import dataclass
 
 from str_to_bool import str_to_bool
 
-T = TypeVar('T', bound=Any)
-
 
 @dataclass
-class EnvironmentValue(Generic[T]):
+class EnvironmentValue:
     """
     Cached environment value
     """
-    env_key: str
-    default: T
-    _value: T | None = None
-    _value_type: type = field(init=False)
+    key: str
+    default: str
+    _value: str | None = None
 
     def __bool__(self) -> bool:
         return bool(self.value)
 
-    def __setattr__(self, key: str, value: object) -> None:
-        if key == 'default':
-            self._value_type = type(value)
-        elif key == '_value' and self._value_type is bool and value is not None:
-            value = bool(str_to_bool(str(value)))
-        super().__setattr__(key, value)
-
     @property
-    def value(self) -> T:
+    def value(self) -> str:
         """
-        Get logger configuration item value
-
+        Get logger configuration item value, either from enviroment or from a cache
         :return: item value
         """
         if self._value is None:
-            self._value = os.environ.get(self.env_key, self.default)
+            self._value = os.environ.get(self.key, self.default)
         return self._value
 
-@dataclass
+
 class LogConfig:
     """
     Logger configuration
     """
-    level: EnvironmentValue[str] = field(
-        default_factory=lambda: EnvironmentValue('BROWSER_LOG_LEVEL', 'DEBUG'))
-    formatting: EnvironmentValue[str] = field(
-        default_factory=lambda: EnvironmentValue('BROWSER_LOG_FORMATTING',
-                                                 '%(levelname)s:%(name)s %(asctime)s %(message)s'))
-    console: EnvironmentValue[bool] = field(
-        default_factory=lambda: EnvironmentValue('BROWSER_LOG_TO_CONSOLE', True))
-    file: EnvironmentValue[str] = field(
-        default_factory=lambda: EnvironmentValue('BROWSER_LOG_FILENAME', ''))
+
+    def __init__(self) -> None:
+        self._level = EnvironmentValue('BROWSER_LOG_LEVEL', 'DEBUG')
+        self._formatting = EnvironmentValue('BROWSER_LOG_FORMATTING', '%(levelname)s:%(name)s %(asctime)s %(message)s')
+        self._console = EnvironmentValue('BROWSER_LOG_TO_CONSOLE', 'True')
+        self._file = EnvironmentValue('BROWSER_LOG_FILENAME', '')
+
+    @property
+    def level(self) -> str:
+        """
+        :return: Logging level value
+        """
+        value = self._level.value
+        if isinstance(logging.getLevelName(value), int):
+            return value
+        raise RuntimeError(f'Invalid log level specified in {self._level.key}: "{value}"')
+
+    @property
+    def formatting(self) -> str:
+        """
+        :return: Logging formatting
+        """
+        return self._formatting.value
+
+    @property
+    def console(self) -> bool:
+        """
+        :return: True if logs should be printed into console (default), False otherwise
+        """
+        return str_to_bool(self._console.value)
+
+    @property
+    def file(self) -> str:
+        """
+        :return: Log file name
+        """
+        return self._file.value
+
     initialized: bool = False
 
 

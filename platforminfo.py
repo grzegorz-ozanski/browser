@@ -1,12 +1,13 @@
 """
-    Platform info module
+    Platform info module for easier interaction with Google Chrome driver/Chrome downloads
 """
 import platform
 import sys
 
 class PlatformInfo:
     """
-    Store information about current system and platform
+    Store both user-friendly system name and platform string compatible with Google Chrome/Chromedriver
+    downloads API JSON
     """
     def __init__(self) -> None:
         self.system = platform.system()
