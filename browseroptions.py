@@ -22,8 +22,8 @@ class BrowserOptions:
         """
         self.exe_path = ''
         self.binary_location = ''
-        self.user_data_dir = None
         self.driver_options = ['window-size=1200,1100', 'log-level=3', 'disable-dev-shm-usage',
+                               'disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox',
                                # for multimedia service login error in headless mode
                                'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                '(KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36'
@@ -33,11 +33,6 @@ class BrowserOptions:
             self.driver_options.append('headless')
         self.timeout = timeout
         self._configure_chromedriver_location(root_path)
-        # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
-        self.driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
-        # Another remedy for reCatcha v3
-        # self.user_data_dir = Path(tempfile.gettempdir(), "myprofile")
-        # self.driver_options += [f'user-data-dir={self.user_data_dir}']
 
     def __repr__(self) -> str:
         return ', '.join([f'{name}={value}' for name, value in self.__dict__.items()])
