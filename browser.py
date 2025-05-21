@@ -35,6 +35,7 @@ class Browser(Chrome):
         """
         self.save_trace_logs = options.save_trace_logs
         self._default_timeout = options.timeout
+        self.user_data_dir = options.user_data_dir
         self._error_log_dir = '.'
 
         log.debug(f'Creating new Chrome instance with parameters: "{options}"')
@@ -52,6 +53,19 @@ class Browser(Chrome):
             service = None
 
         super().__init__(service=service, options=chrome_options)
+
+        self.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                window.navigator.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'languages', {get: () => ['pl-PL', 'pl']});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            """
+        })
+
+    def __del__(self) -> None:
+        if self.user_data_dir and self.user_data_dir.exists():
+            shutil.rmtree(self.user_data_dir)
 
     @property
     def error_log_dir(self) -> str:
