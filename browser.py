@@ -322,6 +322,15 @@ class Browser(Chrome):
             )
         )
 
+    def wait_for_condition(self, condition, timeout: int | None = None) -> None:
+        """
+        Wait until condition specified is True or timeout expires
+        :param condition: condition to be met
+        :param timeout: timeout or None if default timeout should be used
+        """
+        timeout = timeout or self._default_timeout
+        WebDriverWait(self, timeout).until(condition)
+
     def open_dropdown_menu(self, by: str, value: str) -> None:
         """
         Opens dropdown menu
