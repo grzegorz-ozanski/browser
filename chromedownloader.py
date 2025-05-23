@@ -1,5 +1,5 @@
 """
-    Automatically download latest stable Chrome driver and Chrome
+    Automatically download the latest stable Chrome driver and Chrome
 """
 import io
 import os
@@ -42,7 +42,7 @@ def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
 
 class ChromeDownloader:
     """
-        Download and unpack latest stable Chrome driver and Chrome
+        Download and unpack the latest stable Chrome driver and Chrome
     """
 
     class Component(StrEnum):
@@ -80,7 +80,7 @@ class ChromeDownloader:
                 ├── [chrome files]
                 └── chrome[.exe]
 
-        :param chromedriver_root: root directory where Chrome driver will be placed
+        :param chromedriver_root: root directory where Chromedriver will be placed
         :param chrome_subdir: subdirectory inside :param chromedriver_root where Chrome files will be placed
         """
         self.download(ChromeDownloader.Component.CHROMEDRIVER, chromedriver_root)

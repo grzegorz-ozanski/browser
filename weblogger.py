@@ -1,3 +1,4 @@
+"""Logs for web page operations"""
 import inspect
 import os
 from datetime import datetime
@@ -10,7 +11,7 @@ def _get_caller(level: int = 3) -> str:
     # get method name
     method_name = inspect.stack()[level].function
 
-    # get class name if available
+    # get the class name if available
     class_name = None
     if 'self' in frame.f_locals:
         class_name = frame.f_locals['self'].__class__.__name__
@@ -19,7 +20,21 @@ def _get_caller(level: int = 3) -> str:
 
 
 
-class TraceLogger:
+class WebLogger:
+    """
+    Handles logging operations for web activities.
+
+    This class is designed to facilitate the management and storage of log files,
+    screenshots, and HTML page sources generated during web activities. It organizes
+    logs into specific directories based on the type of log, such as errors or traces,
+    and appends useful metadata like timestamps and caller details to the filenames.
+    The service ensures directory organization and log uniqueness by performing checks
+    and renaming existing directories.
+
+    Attributes:
+        root_dir (set): A class-level attribute used to track directories already created
+            during the logging process.
+    """
     root_dir = set()
 
     def __init__(self, service_name: str):
@@ -50,11 +65,39 @@ class TraceLogger:
         return os.path.join(subdir, filename)
 
     def trace(self, suffix: str) -> None:
+        """
+        Trace logs based on the provided suffix if logging is enabled.
+
+        This method checks if trace logging is enabled via the `save_trace_logs`
+        attribute of the browser instance. When enabled, it generates a proper
+        filename using the suffix provided, writes the trace logs, and saves
+        them to the specified file.
+
+        Args:
+            suffix: A string used to customize or identify the generated filename
+            for the trace logs.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
         if self.browser.save_trace_logs:
             filename = self._get_filename("trace", suffix)
             self._write_logs(filename)
 
     def error(self) -> None:
+        """
+        Logs error messages by generating a filename using the _get_filename method
+        and writing logs to the generated file.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
         filename = self._get_filename("error")
         self._write_logs(filename)
 

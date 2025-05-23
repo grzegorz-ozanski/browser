@@ -1,11 +1,11 @@
 from .browser import Browser
 from .browseroptions import BrowserOptions
 from .log import setup_logging
-from .tracelogger import TraceLogger
+from .weblogger import WebLogger
 
 __all__ = [
     "Browser",
     "BrowserOptions",
-    "TraceLogger",
+    "WebLogger",
     "setup_logging"
 ]
