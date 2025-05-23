@@ -133,7 +133,7 @@ class Browser(Chrome):
         :return: anything returned by browser.execute_stript, or False if timeout occured
         """
 
-        timeout = self._default_timeout if timeout is None else timeout
+        timeout = timeout or self._default_timeout
         script = '''
             return new Promise(resolve => {
                 const observer = new MutationObserver(mutations => {
@@ -174,7 +174,7 @@ class Browser(Chrome):
         :return: anything returned by browser.execute_stript, or False if timeout occured
         """
         # Additional check for network activity
-        timeout = self._default_timeout if timeout is None else timeout
+        timeout = timeout or self._default_timeout
         network_idle_script = '''
             return new Promise(resolve => {
                 // Use Performance API to check if resources are still loading
@@ -212,7 +212,7 @@ class Browser(Chrome):
         :return: list of found WebElements or None if timeout expired
         """
         items = None
-        timeout = self._default_timeout if timeout is None else timeout
+        timeout = timeout or self._default_timeout
         try:
             items = WebDriverWait(self, timeout).until(
                 EC.visibility_of_all_elements_located((by, value)))
@@ -231,7 +231,7 @@ class Browser(Chrome):
         :return: WebElement found or None if timeout expired
         """
         items = self.wait_for_elements(by, value, timeout)
-        return items[0] if items is not None else None
+        return items[0] if items else None
 
     def click_element_with_js(self, element: WebElement) -> None:
         """
@@ -296,7 +296,7 @@ class Browser(Chrome):
         :param value: locator value
         :param timeout: timeout or None if default timeout should be used
         """
-        return WebDriverWait(self, self._default_timeout if timeout is None else timeout).until(
+        return WebDriverWait(self, timeout or self._default_timeout).until(
             EC.invisibility_of_element_located((by, value))
         )
 
@@ -310,7 +310,7 @@ class Browser(Chrome):
 
         :return Clickable WebElement reference
         """
-        timeout = self._default_timeout if timeout is None else timeout
+        timeout = timeout or self._default_timeout
 
         return WebDriverWait(self, timeout).until(
             self._is_not_obscured(
