@@ -18,6 +18,9 @@ class EnvironmentValue:
     _value: str | None = None
 
     def __bool__(self) -> bool:
+        """
+            Return stored value as boolean
+        """
         return bool(self.value)
 
     @property
@@ -33,10 +36,13 @@ class EnvironmentValue:
 
 class LogConfig:
     """
-    Logger configuration
+        Configuration object for logging behavior and format.
     """
 
     def __init__(self) -> None:
+        """
+            Initialize the logging configuration with default values.
+        """
         self._level = EnvironmentValue('BROWSER_LOG_LEVEL', 'DEBUG')
         self._formatting = EnvironmentValue('BROWSER_LOG_FORMATTING', '%(levelname)s:%(name)s %(asctime)s %(message)s')
         self._console = EnvironmentValue('BROWSER_LOG_TO_CONSOLE', 'True')

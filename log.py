@@ -10,6 +10,9 @@ from .logconfig import LOG_CONFIG
 def _setup_handler(handler: logging.Handler,
                    level: str,
                    formatting: str) -> logging.Handler:
+    """
+        Configure a logging handler with predefined formatting.
+    """
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter(formatting))
     return handler

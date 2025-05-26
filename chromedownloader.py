@@ -53,6 +53,9 @@ class ChromeDownloader:
         CHROMEDRIVER = 'chromedriver'
 
     def __init__(self, platform_name: str) -> None:
+        """
+            Initialize the downloader with platform-specific settings.
+        """
         self.platform_name = platform_name
         self._downloads = None
 

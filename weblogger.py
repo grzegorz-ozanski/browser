@@ -5,6 +5,9 @@ from datetime import datetime
 
 
 def _get_caller(level: int = 3) -> str:
+    """
+        Determine the function that triggered the log message.
+    """
     # get callers name of the requested level
     frame = inspect.stack()[level].frame
 
@@ -37,19 +40,42 @@ class WebLogger:
     """
     root_dir = set()
 
-    def __init__(self, service_name: str):
+    def __init__(self, name: str):
+        """
+            Initialize logger instance with service name context.
+        """
         self.browser = None
-        self.service_name = service_name
+        self.name = name
         self.trace_id = {}
 
     @classmethod
     def _path_already_created(cls, subdir: str) -> bool:
+        """
+        Check if a log path was already created to avoid duplication.
+        - If the path exists, return True
+        - If the path does not exist, add it to the root_dir set and return False
+        :param subdir: path to check
+        :return: True if path already exists, False if not.
+        """
         if subdir in cls.root_dir:
             return True
         cls.root_dir.add(subdir)
         return False
 
+    def _get_dir(self, level: str) -> str:
+        """
+        Create a per-class directory structure for trace logs but keep error logs for all classes in the same directory.
+        :param level: debug level name
+        :return: logs dir
+        """
+        if level != "error":
+            return os.path.join(level, self.name)
+        return level
+
     def _get_filename(self, subdir: str, suffix: str = "") -> str:
+        """
+            Generate a structured filename for the log output.
+        """
         self.trace_id[subdir] = self.trace_id.get(subdir, 0) + 1
         timestamp = datetime.today().isoformat(sep=' ', timespec='milliseconds').replace(':', '-')
         filename = f"{self.trace_id[subdir]:0>3} {timestamp} {_get_caller()} {suffix}".strip()
@@ -59,8 +85,7 @@ class WebLogger:
                                    for d in os.listdir()
                                    if d.startswith(f"{subdir}") and os.path.isdir(d)], default=0)
                 os.rename(subdir, f'{subdir}.{last_number + 1:>03}')
-        if subdir != "error":
-            subdir = os.path.join(subdir, self.service_name)
+        subdir = self._get_dir(subdir)
         os.makedirs(subdir, exist_ok=True)
         return os.path.join(subdir, filename)
 
@@ -102,6 +127,9 @@ class WebLogger:
         self._write_logs(filename)
 
     def _write_logs(self, filename: str):
+        """
+            Generate a structured filename for the log output.
+        """
         self.browser.save_screenshot(f"{filename}.png")
         with open(f"{filename}.html", "w", encoding="utf-8") as page_source_file:
             page_source_file.write(self.browser.page_source)

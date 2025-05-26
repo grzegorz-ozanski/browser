@@ -10,6 +10,9 @@ class PlatformInfo:
     downloads API JSON
     """
     def __init__(self) -> None:
+        """
+            Initialize platform detection info for browser configuration.
+        """
         self.system = platform.system()
         machine = platform.machine().lower()
 

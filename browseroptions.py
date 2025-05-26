@@ -40,6 +40,9 @@ class BrowserOptions:
         self.driver_options += [f'user-data-dir={self.user_data_dir}']
 
     def __repr__(self) -> str:
+        """
+            Return string representation of the object.
+        """
         return ', '.join([f'{name}={value}' for name, value in self.__dict__.items()])
 
     def _configure_chromedriver_location(self, root_path: str) -> None:

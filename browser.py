@@ -64,6 +64,9 @@ class Browser(Chrome):
         })
 
     def __del__(self) -> None:
+        """
+            Delete user profile if exists
+        """
         if self.user_data_dir and self.user_data_dir.exists():
             shutil.rmtree(self.user_data_dir)
 
