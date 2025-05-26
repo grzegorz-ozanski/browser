@@ -290,7 +290,7 @@ class Browser(Chrome):
 
     def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
         """
-        Wait until web element disappear or timeout expires
+        Wait until web element disappears or timeout expires
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
@@ -298,6 +298,18 @@ class Browser(Chrome):
         """
         return WebDriverWait(self, timeout or self._default_timeout).until(
             EC.invisibility_of_element_located((by, value))
+        )
+
+    def wait_for_element_appear(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
+        """
+        Wait until web element appears or timeout expires
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if default timeout should be used
+        """
+        return WebDriverWait(self, timeout or self._default_timeout).until(
+            EC.presence_of_element_located((by, value))
         )
 
     def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
