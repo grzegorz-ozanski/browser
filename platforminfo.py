@@ -9,6 +9,7 @@ class PlatformInfo:
     Store both user-friendly system name and platform string compatible with Google Chrome/Chromedriver
     downloads API JSON
     """
+    unknown = '<unknown>'
     def __init__(self) -> None:
         """
             Initialize platform detection info for browser configuration.
@@ -23,7 +24,7 @@ class PlatformInfo:
         elif self.system == 'Windows':
             self.platform = 'win64' if sys.maxsize > 2 ** 32 else 'win32'
         else:
-            self.platform = '<unknown>'
+            self.platform = self.unknown
 
     def system_is(self, *name: str) -> bool:
         """
