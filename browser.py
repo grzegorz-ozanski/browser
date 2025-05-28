@@ -6,7 +6,7 @@ import os
 import shutil
 from datetime import datetime
 from time import sleep
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Chrome, ActionChains
@@ -28,6 +28,7 @@ class Browser(Chrome):
     """
     Chrome driver extension
     """
+
     def __init__(self, options: BrowserOptions):
         """
 
@@ -36,7 +37,7 @@ class Browser(Chrome):
         self.save_trace_logs = options.save_trace_logs
         self._default_timeout = options.timeout
         self.user_data_dir = options.user_data_dir
-        self._error_log_dir = '.'
+        self._error_log_dir = options.error_log_dir
 
         log.debug(f'Creating new Chrome instance with parameters: "{options}"')
 
@@ -52,7 +53,7 @@ class Browser(Chrome):
         else:
             service = None
 
-        super().__init__(service=service, options=chrome_options)
+        super().__init__(service=service, options=chrome_options)  # type: ignore[arg-type]
 
         self.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
@@ -223,7 +224,7 @@ class Browser(Chrome):
             pass
         return items
 
-    def wait_for_element(self, by: str, value: str, timeout=None) -> WebElement:
+    def wait_for_element(self, by: str, value: str, timeout=None) -> WebElement | None:
         """
         Wait until all matching elements become visible, or timeout expires, then return the first one
 
@@ -291,7 +292,7 @@ class Browser(Chrome):
         self.trace_click(
             self.wait_for_element_clickable(by, value, timeout), ignore_exception)
 
-    def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
+    def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> None:
         """
         Wait until web element disappears or timeout expires
 
@@ -299,11 +300,12 @@ class Browser(Chrome):
         :param value: locator value
         :param timeout: timeout or None if default timeout should be used
         """
-        return WebDriverWait(self, timeout or self._default_timeout).until(
+        WebDriverWait(self, timeout or self._default_timeout).until(
             EC.invisibility_of_element_located((by, value))
         )
+        return None
 
-    def wait_for_element_appear(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
+    def wait_for_element_appear(self, by: str, value: str, timeout: int | None = None) -> WebElement:
         """
         Wait until web element appears or timeout expires
 
@@ -315,7 +317,7 @@ class Browser(Chrome):
             EC.presence_of_element_located((by, value))
         )
 
-    def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> bool | WebElement:
+    def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> WebElement:
         """
         Wait until web element becomes clickable or timeout expires
 
@@ -327,15 +329,22 @@ class Browser(Chrome):
         """
         timeout = timeout or self._default_timeout
 
-        return WebDriverWait(self, timeout).until(
-            self._is_not_obscured(
-                WebDriverWait(self, timeout).until(
-                    EC.element_to_be_clickable(WebDriverWait(self, timeout).until(
-                        EC.visibility_of_element_located((by, value))
-                    ))
-                )
-            )
+        # 1. Wait for visibility
+        WebDriverWait(self, timeout).until(
+            EC.visibility_of_element_located((by, value))
         )
+
+        # 2. Wait for clickability
+        clickable = WebDriverWait(self, timeout).until(
+            EC.element_to_be_clickable((by, value))
+        )
+
+        # 3.Wait for not obscured
+        WebDriverWait(self, timeout).until(
+            self._is_not_obscured(clickable)
+        )
+
+        return clickable
 
     def wait_for_condition(self, condition, timeout: int | None = None) -> None:
         """
@@ -352,7 +361,11 @@ class Browser(Chrome):
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
         """
-        ActionChains(self).move_to_element(self.wait_for_element(by, value)).perform()
+        element = self.wait_for_element(by, value)
+        if element is not None:
+            ActionChains(self).move_to_element(element).perform()
+        else:
+            raise RuntimeError(f'Timeout expired waiting for element ("{by}", "{value}") to appear!')
 
     def force_get(self, url: str, close_old_tab: bool = True):
         """
@@ -394,7 +407,8 @@ class Browser(Chrome):
             print(f'Tag name: {element.tag_name}')
             print(f'Text content: {element.text}')
             print(f'Attributes:')
-            for attribute in element.get_property('attributes'):
+            attributes = cast(list[dict[str, Any]], element.get_property('attributes'))
+            for attribute in attributes:
                 # noinspection PyTypeChecker
                 print(f'  - {attribute["name"]} = {attribute["value"]}')
             print(f'Location on page: {element.location}')
@@ -402,3 +416,15 @@ class Browser(Chrome):
         except Exception as ex:
             print(f'Exception occured while gathering detailed information for element {element}. '
                   f'Details:\n{ex.__class__.__name__}:{str(ex)}')
+
+    @staticmethod
+    def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
+        """
+        Safely casts possibly None list of WebElements onto an actual list
+        :param unsafe_list: Possibly None list of WebElements
+        :return: list of WebElements
+        :raise RuntimeError if :param unsafe_list is None
+        """
+        if unsafe_list is None:
+            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
+        return cast(list[WebElement], unsafe_list)

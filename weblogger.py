@@ -3,6 +3,8 @@ import inspect
 import os
 from datetime import datetime
 
+from browser import Browser
+
 
 def _get_caller(level: int = 3) -> str:
     """
@@ -38,15 +40,15 @@ class WebLogger:
         root_dir (set): A class-level attribute used to track directories already created
             during the logging process.
     """
-    root_dir = set()
+    root_dir: set[str] = set()
 
     def __init__(self, name: str):
         """
             Initialize logger instance with service name context.
         """
-        self.browser = None
+        self.browser: Browser | None = None
         self.name = name
-        self.trace_id = {}
+        self.trace_id: dict[str, int] = {}
 
     @classmethod
     def _path_already_created(cls, subdir: str) -> bool:
@@ -108,7 +110,7 @@ class WebLogger:
         Raises:
             None
         """
-        if self.browser.save_trace_logs:
+        if self.browser and self.browser.save_trace_logs:
             filename = self._get_filename("trace", suffix)
             self._write_logs(filename)
 
@@ -130,6 +132,7 @@ class WebLogger:
         """
             Generate a structured filename for the log output.
         """
-        self.browser.save_screenshot(f"{filename}.png")
-        with open(f"{filename}.html", "w", encoding="utf-8") as page_source_file:
-            page_source_file.write(self.browser.page_source)
+        if self.browser:
+            self.browser.save_screenshot(f"{filename}.png")
+            with open(f"{filename}.html", "w", encoding="utf-8") as page_source_file:
+                page_source_file.write(self.browser.page_source)

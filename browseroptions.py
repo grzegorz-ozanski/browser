@@ -38,6 +38,7 @@ class BrowserOptions:
         # Another remedy for reCatcha v3
         self.user_data_dir = Path(tempfile.gettempdir(), "myprofile")
         self.driver_options += [f'user-data-dir={self.user_data_dir}']
+        self.error_log_dir = 'error'
 
     def __repr__(self) -> str:
         """

@@ -11,7 +11,7 @@ from typing import Any
 
 import requests
 from .log import setup_logging
-
+from functools import cached_property
 log = setup_logging(__name__)
 
 CHROME_API_ENDPOINT_URL = \
@@ -57,23 +57,20 @@ class ChromeDownloader:
             Initialize the downloader with platform-specific settings.
         """
         self.platform_name = platform_name
-        self._downloads = None
 
-    @property
+    @cached_property
     def downloads(self) -> dict[str, Any]:
         """
         Latest available stable downloads
 
         :return: Dictionary containing downloads info
         """
-        if not self._downloads:
-            response = requests.get(CHROME_API_ENDPOINT_URL)
-            response.raise_for_status()
-            data = response.json()
-            self._downloads = data['channels']['Stable']['downloads']
-        return self._downloads
+        response = requests.get(CHROME_API_ENDPOINT_URL)
+        response.raise_for_status()
+        data = response.json()
+        return data['channels']['Stable']['downloads']
 
-    def download_all(self, chromedriver_root: str | Path, chrome_subdir: str | Path) -> None:
+    def download_all(self, chromedriver_root: Path, chrome_subdir: str | Path) -> None:
         """
         Downloads all components (Chrome driver and Chrome) into directories provided. Target directory tree will be:
 
