@@ -14,6 +14,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
+# Intentionally choose to import expected_conditions as upper-case EC
 # noinspection PyPep8Naming
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -53,6 +54,7 @@ class Browser(Chrome):
         else:
             service = None
 
+        # supress mypy warning as service in WebDriver is actually defined as "service: Service = None"
         super().__init__(service=service, options=chrome_options)  # type: ignore[arg-type]
 
         self.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
@@ -264,6 +266,7 @@ class Browser(Chrome):
         :param ignore_exception: raise exception if True, ignore if False (default: False)
         :raises any exception caused by element.click() if ignore_exception is set to False (default)
         """
+        # we do want to create a trace dump on any exception
         # noinspection PyBroadException
         try:
             element.click()
@@ -409,7 +412,6 @@ class Browser(Chrome):
             print(f'Attributes:')
             attributes = cast(list[dict[str, Any]], element.get_property('attributes'))
             for attribute in attributes:
-                # noinspection PyTypeChecker
                 print(f'  - {attribute["name"]} = {attribute["value"]}')
             print(f'Location on page: {element.location}')
             print(f'Size: {element.size}')
