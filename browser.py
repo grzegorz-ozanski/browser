@@ -73,6 +73,9 @@ class Browser(Chrome):
         if self.user_data_dir and self.user_data_dir.exists():
             shutil.rmtree(self.user_data_dir)
 
+    def execute_script(self, script: str, *args: Any) -> Any:
+        return cast(Callable[[str, *Any], Any], super().execute_script)(script, *args)
+
     @property
     def error_log_dir(self) -> str:
         """
@@ -85,14 +88,14 @@ class Browser(Chrome):
         self._error_log_dir = value
 
     @staticmethod
-    def _is_not_obscured(element: WebElement) -> Callable[[WebDriver], bool | WebElement]:
+    def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
         """
         Check if element is not overlapped by other (i.e. available for interaction)
         :param element: WebElement to check
         :return: Callable to use as predicate
         """
 
-        def _check(browser: WebDriver) -> bool | WebElement:
+        def _check(browser: Browser) -> bool | WebElement:
             """
             Check if element is not overlapped by other (i.e. available for interaction)
             :param browser: WebDriver object
@@ -349,7 +352,7 @@ class Browser(Chrome):
 
         return clickable
 
-    def wait_for_condition(self, condition, timeout: int | None = None) -> None:
+    def wait_for_condition(self, condition: Callable[..., bool], timeout: int | None = None) -> None:
         """
         Wait until condition specified is True or timeout expires
         :param condition: condition to be met
@@ -429,4 +432,4 @@ class Browser(Chrome):
         """
         if unsafe_list is None:
             raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
-        return cast(list[WebElement], unsafe_list)
+        return unsafe_list

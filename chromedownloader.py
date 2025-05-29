@@ -35,7 +35,8 @@ def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
                 os.makedirs(target_path.parent, exist_ok=True)
                 with zip_file.open(info) as src, open(target_path, "wb") as dst:
                     # supress the warning as the result of open() actually is a BufferedWriter
-                    shutil.copyfileobj(src, dst)  # type: ignore[arg-type]
+                    # noinspection PyTypeChecker
+                    shutil.copyfileobj(src, dst)
                 mode = info.external_attr >> 16
                 if mode:
                     os.chmod(target_path, mode)
@@ -59,7 +60,7 @@ class ChromeDownloader:
         self.platform_name = platform_name
 
     @cached_property
-    def downloads(self) -> dict[str, Any]:
+    def downloads(self) -> Any:
         """
         Latest available stable downloads
 
