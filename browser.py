@@ -73,9 +73,6 @@ class Browser(Chrome):
         if self.user_data_dir and self.user_data_dir.exists():
             shutil.rmtree(self.user_data_dir)
 
-    def execute_script(self, script: str, *args: Any) -> Any:
-        return cast(Callable[[str, *Any], Any], super().execute_script)(script, *args)
-
     @property
     def error_log_dir(self) -> str:
         """
@@ -118,7 +115,8 @@ class Browser(Chrome):
                     return false;
                 }
             '''
-            if browser.execute_script(script, element):
+            # Ignore 'mypy --strict' error on a library function
+            if browser.execute_script(script, element):  # type: ignore[no-untyped-call]
                 return element
             return False
 
@@ -126,11 +124,12 @@ class Browser(Chrome):
 
     def wait_for_page_load_completed(self) -> None:
         """
-        Wait untli page is full loaded, lightest version (document ready state is 'complete')
+        Wait untli page is full loaded, the lightest version (document ready state is 'complete')
         """
         state = None
         while state != 'complete':
-            state = self.execute_script('return document.readyState')
+            # Ignore 'mypy --strict' error on a library function
+            state = self.execute_script('return document.readyState')  # type: ignore[no-untyped-call]
             log.debug(state)
             sleep(0.1)
 
@@ -205,7 +204,8 @@ class Browser(Chrome):
                 setTimeout(() => resolve(false), ''' + str((timeout - 4) * 1000) + ''');
             });
         '''
-        self.execute_script(network_idle_script)
+        # Ignore 'mypy --strict' error on a library function
+        self.execute_script(network_idle_script)  # type: ignore[no-untyped-call]
 
         # Finally, wait a short time for any final rendering or initialization
         sleep(0.5)
@@ -249,7 +249,8 @@ class Browser(Chrome):
         :param element: WebElement to click
 
         """
-        self.execute_script('arguments[0].click()', element)
+        # Ignore 'mypy --strict' error on a library function
+        self.execute_script('arguments[0].click()', element)  # type: ignore[no-untyped-call]
 
     def find_and_click_element_with_js(self, by: str, value: str) -> None:
         """
@@ -384,7 +385,8 @@ class Browser(Chrome):
             old_tab = self.current_window_handle
 
             # Open a new empty card
-            self.execute_script('window.open('');')
+            # Ignore 'mypy --strict' error on a library function
+            self.execute_script('window.open('');')  # type: ignore[no-untyped-call]
 
             # Switch to the new card (it's last on the card list)
             self.switch_to.window(self.window_handles[-1])
