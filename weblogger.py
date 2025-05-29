@@ -42,11 +42,11 @@ class WebLogger:
     """
     root_dir: set[str] = set()
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, browser: Browser):
         """
             Initialize logger instance with service name context.
         """
-        self.browser: Browser | None = None
+        self.browser = browser
         self.name = name
         self.trace_id: dict[str, int] = {}
 
@@ -110,7 +110,7 @@ class WebLogger:
         Raises:
             None
         """
-        if self.browser and self.browser.save_trace_logs:
+        if self.browser.save_trace_logs:
             filename = self._get_filename("trace", suffix)
             self._write_logs(filename)
 
@@ -132,7 +132,6 @@ class WebLogger:
         """
             Generate a structured filename for the log output.
         """
-        if self.browser:
-            self.browser.save_screenshot(f"{filename}.png")
-            with open(f"{filename}.html", "w", encoding="utf-8") as page_source_file:
-                page_source_file.write(self.browser.page_source)
+        self.browser.save_screenshot(f"{filename}.png")
+        with open(f"{filename}.html", "w", encoding="utf-8") as page_source_file:
+            page_source_file.write(self.browser.page_source)
