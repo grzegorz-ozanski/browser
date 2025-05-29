@@ -81,7 +81,7 @@ class Browser(Chrome):
         return self._error_log_dir
 
     @error_log_dir.setter
-    def error_log_dir(self, value: str):
+    def error_log_dir(self, value: str) -> None:
         self._error_log_dir = value
 
     @staticmethod
@@ -226,7 +226,7 @@ class Browser(Chrome):
             pass
         return items
 
-    def wait_for_element(self, by: str, value: str, timeout=None) -> WebElement | None:
+    def wait_for_element(self, by: str, value: str, timeout: int | None = None) -> WebElement | None:
         """
         Wait until all matching elements become visible, or timeout expires, then return the first one
 
@@ -370,7 +370,7 @@ class Browser(Chrome):
         else:
             raise RuntimeError(f'Timeout expired waiting for element ("{by}", "{value}") to appear!')
 
-    def force_get(self, url: str, close_old_tab: bool = True):
+    def force_get(self, url: str, close_old_tab: bool = True) -> None:
         """
         Opens URL in a new browser card
 

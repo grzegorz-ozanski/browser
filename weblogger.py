@@ -128,7 +128,7 @@ class WebLogger:
         filename = self._get_filename("error")
         self._write_logs(filename)
 
-    def _write_logs(self, filename: str):
+    def _write_logs(self, filename: str) -> None:
         """
             Generate a structured filename for the log output.
         """
