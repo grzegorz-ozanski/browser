@@ -8,11 +8,10 @@ from datetime import datetime
 from time import sleep
 from typing import Any, Callable, cast
 
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver import Chrome, ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 # Intentionally choose to import expected_conditions as upper-case EC
 # noinspection PyPep8Naming
@@ -87,14 +86,14 @@ class Browser(Chrome):
     @staticmethod
     def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
         """
-        Check if element is not overlapped by other (i.e. available for interaction)
+        Check if other elements do not overlap the provided one (i.e., the element is available for interaction)
         :param element: WebElement to check
         :return: Callable to use as predicate
         """
 
         def _check(browser: Browser) -> bool | WebElement:
             """
-            Check if element is not overlapped by other (i.e. available for interaction)
+            Interanal function to be used as predicate for WebDriverWait
             :param browser: WebDriver object
             :return: Web element provided in "element" when becomes available for interaction
             """
@@ -137,7 +136,7 @@ class Browser(Chrome):
         """
         Wait untli page is full loaded, more heavy version (DOM stopped changing)
 
-        :param timeout: timeout or None if default timeout should be used
+        :param timeout: timeout or None if the default timeout should be used
         :return: anything returned by browser.execute_stript, or False if timeout occured
         """
 
@@ -178,7 +177,7 @@ class Browser(Chrome):
         """
         Wait untli page is full loaded by checking if any network activity is stopped
 
-        :param timeout: timeout or None if default timeout should be used
+        :param timeout: timeout or None if the default timeout should be used
         :return: anything returned by browser.execute_stript, or False if timeout occured
         """
         # Additional check for network activity
@@ -212,11 +211,11 @@ class Browser(Chrome):
 
     def wait_for_elements(self, by: str, value: str, timeout: int | None = None) -> list[WebElement] | None:
         """
-        Wait until all matching elements become visible, or timeout expires
+        Wait until all matching elements become visible, or the timeout expires
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
-        :param timeout: timeout or None if default timeout should be used
+        :param timeout: timeout or None if the default timeout should be used
 
         :return: list of found WebElements or None if timeout expired
         """
@@ -235,26 +234,41 @@ class Browser(Chrome):
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
-        :param timeout: waiting timeout
+        :param timeout: timeout or None if the default timeout should be used
 
         :return: WebElement found or None if timeout expired
         """
         items = self.wait_for_elements(by, value, timeout)
         return items[0] if items else None
 
-    def click_element_with_js(self, element: WebElement) -> None:
+    def click_element_with_js(self, element: WebElement, by: str = '', value: str = '',
+                              timeout: int | None = None) -> None:
         """
-        Force click element, ignoring any elements that may overlap it
+        Force click an element, ignoring any elements that may overlap it.
+        If :param by and :param value are provided, the element will be searched for again if StaleElementReferenceException
+        occurs during the click.
 
         :param element: WebElement to click
-
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if the default timeout should be used
         """
-        # Ignore 'mypy --strict' error on a library function
-        self.execute_script('arguments[0].click()', element)  # type: ignore[no-untyped-call]
+        try:
+            self.execute_script('arguments[0].click()', element)  # type: ignore[no-untyped-call]
+        except StaleElementReferenceException:
+            if not (by and value):
+                raise
+
+            log.warning(f"Stale element exception occurred while trying to click (by={by}, value={value})")
+            refreshed = self.wait_for_element(by, value, timeout)
+            if refreshed:
+                self.execute_script("arguments[0].click();", refreshed)  # type: ignore[no-untyped-call]
+            else:
+                raise
 
     def find_and_click_element_with_js(self, by: str, value: str) -> None:
         """
-        Force click element, ignoring any elements that may overlap it
+        Force click an element, ignoring any elements that may overlap it
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
@@ -264,7 +278,7 @@ class Browser(Chrome):
 
     def trace_click(self, element: WebElement, ignore_exception: bool = False) -> None:
         """
-        Click provided WebElement and save its screenshot if click fails
+        Click the provided WebElement and save its screenshot if the click fails
 
         :param element: WebElement
         :param ignore_exception: raise exception if True, ignore if False (default: False)
@@ -288,7 +302,7 @@ class Browser(Chrome):
 
     def safe_click(self, by: str, value: str, timeout: int | None = None, ignore_exception: bool = False) -> None:
         """
-        Wait until provided WebElement becomes clickable, then click it and save its screenshot if click fails
+        Wait until the provided WebElement becomes clickable, then click it and save its screenshot if the click fails
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
@@ -301,11 +315,11 @@ class Browser(Chrome):
 
     def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> None:
         """
-        Wait until web element disappears or timeout expires
+        Wait until a web element disappears or timeout expires
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
-        :param timeout: timeout or None if default timeout should be used
+        :param timeout: timeout or None if the default timeout should be used
         """
         WebDriverWait(self, timeout or self._default_timeout).until(
             EC.invisibility_of_element_located((by, value))
@@ -314,11 +328,11 @@ class Browser(Chrome):
 
     def wait_for_element_appear(self, by: str, value: str, timeout: int | None = None) -> WebElement:
         """
-        Wait until web element appears or timeout expires
+        Wait until a web element appears or timeout expires
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
-        :param timeout: timeout or None if default timeout should be used
+        :param timeout: timeout or None if the default timeout should be used
         """
         return WebDriverWait(self, timeout or self._default_timeout).until(
             EC.presence_of_element_located((by, value))
@@ -326,11 +340,11 @@ class Browser(Chrome):
 
     def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> WebElement:
         """
-        Wait until web element becomes clickable or timeout expires
+        Wait until a web element becomes clickable or the timeout expires
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
-        :param timeout: timeout or None if default timeout should be used
+        :param timeout: timeout or None if the default timeout should be used
 
         :return Clickable WebElement reference
         """
@@ -355,16 +369,16 @@ class Browser(Chrome):
 
     def wait_for_condition(self, condition: Callable[..., bool], timeout: int | None = None) -> None:
         """
-        Wait until condition specified is True or timeout expires
+        Wait until the condition specified is True or timeout expires
         :param condition: condition to be met
-        :param timeout: timeout or None if default timeout should be used
+        :param timeout: timeout or None if the default timeout should be used
         """
         timeout = timeout or self._default_timeout
         WebDriverWait(self, timeout).until(condition)
 
     def open_dropdown_menu(self, by: str, value: str) -> None:
         """
-        Opens dropdown menu
+        Opens the provided dropdown menu
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
         """
@@ -378,7 +392,7 @@ class Browser(Chrome):
         """
         Opens URL in a new browser card
 
-        :param url: address
+        :param url: an address of the page to open
         :param close_old_tab: close old tab (default: True)
         """
         try:
@@ -427,9 +441,9 @@ class Browser(Chrome):
     @staticmethod
     def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
         """
-        Safely casts possibly None list of WebElements onto an actual list
-        :param unsafe_list: Possibly None list of WebElements
-        :return: list of WebElements
+        Safely casts the list of WebElements which may also be None onto an actual list
+        :param unsafe_list: input list
+        :return: converted list
         :raise RuntimeError if :param unsafe_list is None
         """
         if unsafe_list is None:
