@@ -64,12 +64,16 @@ class ChromeDownloader:
         """
         Latest available stable downloads
 
-        :return: Dictionary containing downloads info
+        :return: Dictionary which contains downloads info
         """
-        response = requests.get(CHROME_API_ENDPOINT_URL)
-        response.raise_for_status()
-        data = response.json()
-        return data['channels']['Stable']['downloads']
+        try:
+            response = requests.get(CHROME_API_ENDPOINT_URL)
+            response.raise_for_status()
+            data = response.json()
+            return data['channels']['Stable']['downloads']
+        except requests.exceptions.ConnectionError as e:
+            log.error(f'Failed to download latest stable downloads: {e}')
+            return None
 
     def download_all(self, chromedriver_root: Path, chrome_subdir: str | Path) -> None:
         """
@@ -95,8 +99,12 @@ class ChromeDownloader:
         """
         url = next(item for item in self.downloads[what] if item['platform'] == self.platform_name)['url']
         log.debug(f'Downloading {what} from {url}')
-        response = requests.get(url)
-        response.raise_for_status()
-        archive_dir = f'{what}-{self.platform_name}'
+        if url:
+            response = requests.get(url)
+            response.raise_for_status()
+            archive_dir = f'{what}-{self.platform_name}'
 
-        unpack(response.content, archive_dir, where)
+            unpack(response.content, archive_dir, where)
+        else:
+            log.error(f'Cannot obtain download url of {what} for {self.platform_name}')
+            raise RuntimeError(f'Cannot obtain download url of {what} for {self.platform_name}')
