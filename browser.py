@@ -129,7 +129,7 @@ class Browser(Chrome):
         while state != 'complete':
             # Ignore 'mypy --strict' error on a library function
             state = self.execute_script('return document.readyState')  # type: ignore[no-untyped-call]
-            log.debug(state)
+            log.debug(f'Page load state == {state}')
             sleep(0.1)
 
     def wait_for_page_inactive(self, timeout: int | None = None) -> Any:
