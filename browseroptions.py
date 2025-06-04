@@ -17,7 +17,7 @@ class BrowserOptions:
         Class construstor
         :param root_path: Chromediver root path
         :param headless: run Chrome browser in headless mode
-        :param save_trace_logs: if 'True', trace logs on page elements operations will be saved
+        :param save_trace_logs: if 'True', trace logs on page elements operations are saved
         :param timeout: default timeout value for relevant operations
         """
         self.exe_path = ''
