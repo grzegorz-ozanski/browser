@@ -64,6 +64,43 @@ class WebLogger:
         cls.root_dir.add(subdir)
         return False
 
+    def error(self) -> None:
+        """
+        Logs error messages by generating a filename using the _get_filename method
+        and writing logs to the generated file.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        filename = self._get_filename("error")
+        self._write_logs(filename)
+
+    def trace(self, suffix: str) -> None:
+        """
+        Trace logs based on the provided suffix if logging is enabled.
+
+        This method checks if trace logging is enabled via the `save_trace_logs`
+        attribute of the browser instance. When enabled, it generates a proper
+        filename using the suffix provided, writes the trace logs, and saves
+        them to the specified file.
+
+        Args:
+            suffix: A string used to customize or identify the generated filename
+            for the trace logs.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        if self.browser.save_trace_logs:
+            filename = self._get_filename("trace", suffix)
+            self._write_logs(filename)
+
     def _get_dir(self, level: str) -> str:
         """
         Create a per-class directory structure for trace logs but keep error logs for all classes in the same directory.
@@ -90,43 +127,6 @@ class WebLogger:
         subdir = self._get_dir(subdir)
         os.makedirs(subdir, exist_ok=True)
         return os.path.join(subdir, filename)
-
-    def trace(self, suffix: str) -> None:
-        """
-        Trace logs based on the provided suffix if logging is enabled.
-
-        This method checks if trace logging is enabled via the `save_trace_logs`
-        attribute of the browser instance. When enabled, it generates a proper
-        filename using the suffix provided, writes the trace logs, and saves
-        them to the specified file.
-
-        Args:
-            suffix: A string used to customize or identify the generated filename
-            for the trace logs.
-
-        Returns:
-            None
-
-        Raises:
-            None
-        """
-        if self.browser.save_trace_logs:
-            filename = self._get_filename("trace", suffix)
-            self._write_logs(filename)
-
-    def error(self) -> None:
-        """
-        Logs error messages by generating a filename using the _get_filename method
-        and writing logs to the generated file.
-
-        Returns:
-            None
-
-        Raises:
-            None
-        """
-        filename = self._get_filename("error")
-        self._write_logs(filename)
 
     def _write_logs(self, filename: str) -> None:
         """

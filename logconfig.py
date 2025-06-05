@@ -49,23 +49,6 @@ class LogConfig:
         self._file = EnvironmentValue('BROWSER_LOG_FILENAME', '')
 
     @property
-    def level(self) -> str:
-        """
-        :return: Logging level value
-        """
-        value = self._level.value
-        if isinstance(logging.getLevelName(value), int):
-            return value
-        raise RuntimeError(f'Invalid log level specified in {self._level.key}: "{value}"')
-
-    @property
-    def formatting(self) -> str:
-        """
-        :return: Logging formatting
-        """
-        return self._formatting.value
-
-    @property
     def console(self) -> bool:
         """
         :return: True if logs should be printed into console (default), False otherwise
@@ -79,6 +62,23 @@ class LogConfig:
         """
         return self._file.value
 
+    @property
+    def formatting(self) -> str:
+        """
+        :return: Logging formatting
+        """
+        return self._formatting.value
+
+
+    @property
+    def level(self) -> str:
+        """
+        :return: Logging level value
+        """
+        value = self._level.value
+        if isinstance(logging.getLevelName(value), int):
+            return value
+        raise RuntimeError(f'Invalid log level specified in {self._level.key}: "{value}"')
     initialized: bool = False
 
 

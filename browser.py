@@ -85,6 +85,39 @@ class Browser(Chrome):
         self._error_log_dir = value
 
     @staticmethod
+    def dump_element(element: WebElement | None) -> None:
+        """
+        Dump web element data
+        :param element: WebElement
+        """
+        if element is None:
+            return
+        try:
+            print(f'Tag name: {element.tag_name}')
+            print(f'Text content: {element.text}')
+            print(f'Attributes:')
+            attributes = cast(list[dict[str, Any]], element.get_property('attributes'))
+            for attribute in attributes:
+                print(f'  - {attribute["name"]} = {attribute["value"]}')
+            print(f'Location on page: {element.location}')
+            print(f'Size: {element.size}')
+        except Exception as ex:
+            print(f'Exception occured while gathering detailed information for element {element}. '
+                  f'Details:\n{ex.__class__.__name__}:{str(ex)}')
+
+    @staticmethod
+    def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
+        """
+        Safely casts the list of WebElements which may also be None onto an actual list
+        :param unsafe_list: input list
+        :return: converted list
+        :raise RuntimeError if :param unsafe_list is None
+        """
+        if unsafe_list is None:
+            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
+        return unsafe_list
+
+    @staticmethod
     def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
         """
         Check if other elements do not overlap the provided one (i.e., the element is available for interaction)
@@ -106,7 +139,7 @@ class Browser(Chrome):
 
                 // Get the element at the center point
                 const elementAtPoint = document.elementFromPoint(centerX, centerY);
-                
+
                 // Check if either element or elementAtPoint is null
                 if (element && elementAtPoint) {
                     // Check if the element or one of its descendants is at that point
@@ -121,126 +154,6 @@ class Browser(Chrome):
             return False
 
         return _check
-
-    def wait_for_page_load_completed(self) -> None:
-        """
-        Wait untli page is full loaded, the lightest version (document ready state is 'complete')
-        """
-        state = None
-        while state != 'complete':
-            # Ignore 'mypy --strict' error on a library function
-            state = self.execute_script('return document.readyState')  # type: ignore[no-untyped-call]
-            log.debug(f'Page load state == {state}')
-            sleep(0.1)
-
-    def wait_for_page_inactive(self, timeout: int | None = None) -> Any:
-        """
-        Wait untli page is full loaded, more heavy version (DOM stopped changing)
-
-        :param timeout: timeout or None if the default timeout should be used
-        :return: anything returned by browser.execute_stript, or False if timeout occured
-        """
-
-        timeout = timeout or self._default_timeout
-        script = '''
-            return new Promise(resolve => {
-                const observer = new MutationObserver(mutations => {
-                    // Use a timer to detect when mutations have stopped for 1 second
-                    if (window._mutationTimer) {
-                        clearTimeout(window._mutationTimer);
-                    }
-                    window._mutationTimer = setTimeout(() => {
-                        observer.disconnect();
-                        resolve(true);
-                    }, 1000);
-                });
-                observer.observe(document.body, {
-                    childList: true, 
-                    attributes: true,
-                    subtree: true
-                });
-                // Set a timeout for the maximum wait time
-                setTimeout(() => {
-                    observer.disconnect();
-                    resolve(false);
-                }, ''' + str(timeout * 1000) + ''');
-            });
-        '''
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(self.execute_script, script)
-            try:
-                return future.result(timeout=timeout + 2)
-            except concurrent.futures.TimeoutError:
-                log.debug(f'Timeout {timeout}(s) expired waiting for page to become inactive!')
-                return False
-
-    def wait_for_network_inactive(self, timeout: int | None = None) -> None:
-        """
-        Wait untli page is full loaded by checking if any network activity is stopped
-
-        :param timeout: timeout or None if the default timeout should be used
-        :return: anything returned by browser.execute_stript, or False if timeout occured
-        """
-        # Additional check for network activity
-        timeout = timeout or self._default_timeout
-        network_idle_script = '''
-            return new Promise(resolve => {
-                // Use Performance API to check if resources are still loading
-                let lastResourceCount = performance.getEntriesByType('resource').length;
-
-                const checkResources = () => {
-                    const currentCount = performance.getEntriesByType('resource').length;
-                    if (currentCount === lastResourceCount) {
-                        // No new resources in the last second
-                        resolve(true);
-                    } else {
-                        lastResourceCount = currentCount;
-                        setTimeout(checkResources, 1000);
-                    }
-                };
-
-                setTimeout(checkResources, 1000);
-                // Fallback timeout
-                setTimeout(() => resolve(false), ''' + str((timeout - 4) * 1000) + ''');
-            });
-        '''
-        # Ignore 'mypy --strict' error on a library function
-        self.execute_script(network_idle_script)  # type: ignore[no-untyped-call]
-
-        # Finally, wait a short time for any final rendering or initialization
-        sleep(0.5)
-
-    def wait_for_elements(self, by: str, value: str, timeout: int | None = None) -> list[WebElement] | None:
-        """
-        Wait until all matching elements become visible, or the timeout expires
-
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
-        :param timeout: timeout or None if the default timeout should be used
-
-        :return: list of found WebElements or None if timeout expired
-        """
-        items = None
-        timeout = timeout or self._default_timeout
-        try:
-            items = WebDriverWait(self, timeout).until(
-                EC.visibility_of_all_elements_located((by, value)))
-        except TimeoutException:
-            pass
-        return items
-
-    def wait_for_element(self, by: str, value: str, timeout: int | None = None) -> WebElement | None:
-        """
-        Wait until all matching elements become visible, or timeout expires, then return the first one
-
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
-        :param timeout: timeout or None if the default timeout should be used
-
-        :return: WebElement found or None if timeout expired
-        """
-        items = self.wait_for_elements(by, value, timeout)
-        return items[0] if items else None
 
     def click_element_with_js(self, element: WebElement, by: str = '', value: str = '',
                               timeout: int | None = None) -> None:
@@ -269,13 +182,67 @@ class Browser(Chrome):
 
     def find_and_click_element_with_js(self, by: str, value: str) -> None:
         """
-        Force click an element, ignoring any elements that may overlap it
+        Finds and force click an element, ignoring any elements that may overlap it
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
 
         """
         self.click_element_with_js(self.find_element(by, value))
+
+    def open_dropdown_menu(self, by: str, value: str) -> None:
+        """
+        Opens the provided dropdown menu
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        """
+        element = self.wait_for_element(by, value)
+        if element is not None:
+            ActionChains(self).move_to_element(element).perform()
+        else:
+            raise TimeoutException(f'Timeout expired waiting for element ("{by}", "{value}") to appear!')
+
+    def force_get(self, url: str, close_old_tab: bool = True) -> None:
+        """
+        Opens URL in a new browser card
+
+        :param url: an address of the page to open
+        :param close_old_tab: close old tab (default: True)
+        """
+        try:
+            old_tab = self.current_window_handle
+
+            # Open a new empty card
+            # Ignore 'mypy --strict' error on a library function
+            self.execute_script('window.open('');')  # type: ignore[no-untyped-call]
+
+            # Switch to the new card (it's last on the card list)
+            self.switch_to.window(self.window_handles[-1])
+            self.get(url)
+
+            # Close the old card, if requested
+            if close_old_tab and old_tab != self.current_window_handle:
+                self.switch_to.window(old_tab)
+                self.close()
+
+                # Switch to the card opened above
+                self.switch_to.window(self.window_handles[-1])
+
+        except Exception as e:
+            print(f'Error navigating to "{url}": {e}')
+
+    def safe_click(self, by: str, value: str, timeout: int | None = None, ignore_exception: bool = False) -> None:
+        """
+        Wait until the provided WebElement becomes clickable, then click it and save its screenshot if the click fails
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if default timeout should be used
+        :param ignore_exception: raise exception if True, ignore if False (default: False)
+        :raises any exception caused by element.click() if ignore_exception is set to False (default)
+        """
+        self.trace_click(
+            self.wait_for_element_clickable(by, value, timeout), ignore_exception)
 
     def trace_click(self, element: WebElement, ignore_exception: bool = False) -> None:
         """
@@ -301,31 +268,46 @@ class Browser(Chrome):
             if not ignore_exception:
                 raise
 
-    def safe_click(self, by: str, value: str, timeout: int | None = None, ignore_exception: bool = False) -> None:
+    def wait_for_condition(self, condition: Callable[..., bool], timeout: int | None = None) -> None:
         """
-        Wait until the provided WebElement becomes clickable, then click it and save its screenshot if the click fails
+        Wait until the condition specified is True or timeout expires
+        :param condition: condition to be met
+        :param timeout: timeout or None if the default timeout should be used
+        """
+        timeout = timeout or self._default_timeout
+        WebDriverWait(self, timeout).until(condition)
 
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
-        :param timeout: timeout or None if default timeout should be used
-        :param ignore_exception: raise exception if True, ignore if False (default: False)
-        :raises any exception caused by element.click() if ignore_exception is set to False (default)
+    def wait_for_element(self, by: str, value: str, timeout: int | None = None) -> WebElement | None:
         """
-        self.trace_click(
-            self.wait_for_element_clickable(by, value, timeout), ignore_exception)
-
-    def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> None:
-        """
-        Wait until a web element disappears or timeout expires
+        Wait until all matching elements become visible, or timeout expires, then return the first one
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
         :param timeout: timeout or None if the default timeout should be used
+
+        :return: WebElement found or None if timeout expired
         """
-        WebDriverWait(self, timeout or self._default_timeout).until(
-            EC.invisibility_of_element_located((by, value))
-        )
-        return None
+        items = self.wait_for_elements(by, value, timeout)
+        return items[0] if items else None
+
+    def wait_for_elements(self, by: str, value: str, timeout: int | None = None) -> list[WebElement] | None:
+        """
+        Wait until all matching elements become visible, or the timeout expires
+
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if the default timeout should be used
+
+        :return: list of found WebElements or None if timeout expired
+        """
+        items = None
+        timeout = timeout or self._default_timeout
+        try:
+            items = WebDriverWait(self, timeout).until(
+                EC.visibility_of_all_elements_located((by, value)))
+        except TimeoutException:
+            pass
+        return items
 
     def wait_for_element_appear(self, by: str, value: str, timeout: int | None = None) -> WebElement:
         """
@@ -368,85 +350,103 @@ class Browser(Chrome):
 
         return clickable
 
-    def wait_for_condition(self, condition: Callable[..., bool], timeout: int | None = None) -> None:
+    def wait_for_element_disappear(self, by: str, value: str, timeout: int | None = None) -> None:
         """
-        Wait until the condition specified is True or timeout expires
-        :param condition: condition to be met
-        :param timeout: timeout or None if the default timeout should be used
-        """
-        timeout = timeout or self._default_timeout
-        WebDriverWait(self, timeout).until(condition)
+        Wait until a web element disappears or timeout expires
 
-    def open_dropdown_menu(self, by: str, value: str) -> None:
-        """
-        Opens the provided dropdown menu
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
+        :param timeout: timeout or None if the default timeout should be used
         """
-        element = self.wait_for_element(by, value)
-        if element is not None:
-            ActionChains(self).move_to_element(element).perform()
-        else:
-            raise RuntimeError(f'Timeout expired waiting for element ("{by}", "{value}") to appear!')
+        WebDriverWait(self, timeout or self._default_timeout).until(
+            EC.invisibility_of_element_located((by, value))
+        )
+        return None
 
-    def force_get(self, url: str, close_old_tab: bool = True) -> None:
+    def wait_for_network_inactive(self, timeout: int | None = None) -> None:
         """
-        Opens URL in a new browser card
+        Wait untli page is full loaded by checking if any network activity is stopped
 
-        :param url: an address of the page to open
-        :param close_old_tab: close old tab (default: True)
+        :param timeout: timeout or None if the default timeout should be used
+        :return: anything returned by browser.execute_stript, or False if timeout occured
         """
-        try:
-            old_tab = self.current_window_handle
+        # Additional check for network activity
+        timeout = timeout or self._default_timeout
+        network_idle_script = '''
+            return new Promise(resolve => {
+                // Use Performance API to check if resources are still loading
+                let lastResourceCount = performance.getEntriesByType('resource').length;
 
-            # Open a new empty card
+                const checkResources = () => {
+                    const currentCount = performance.getEntriesByType('resource').length;
+                    if (currentCount === lastResourceCount) {
+                        // No new resources in the last second
+                        resolve(true);
+                    } else {
+                        lastResourceCount = currentCount;
+                        setTimeout(checkResources, 1000);
+                    }
+                };
+
+                setTimeout(checkResources, 1000);
+                // Fallback timeout
+                setTimeout(() => resolve(false), ''' + str((timeout - 4) * 1000) + ''');
+            });
+        '''
+        # Ignore 'mypy --strict' error on a library function
+        self.execute_script(network_idle_script)  # type: ignore[no-untyped-call]
+
+        # Finally, wait a short time for any final rendering or initialization
+        sleep(0.5)
+
+    def wait_for_page_inactive(self, timeout: int | None = None) -> Any:
+        """
+        Wait untli page is full loaded, more heavy version (DOM stopped changing)
+
+        :param timeout: timeout or None if the default timeout should be used
+        :return: anything returned by browser.execute_stript, or False if timeout occured
+        """
+
+        timeout = timeout or self._default_timeout
+        script = '''
+            return new Promise(resolve => {
+                const observer = new MutationObserver(mutations => {
+                    // Use a timer to detect when mutations have stopped for 1 second
+                    if (window._mutationTimer) {
+                        clearTimeout(window._mutationTimer);
+                    }
+                    window._mutationTimer = setTimeout(() => {
+                        observer.disconnect();
+                        resolve(true);
+                    }, 1000);
+                });
+                observer.observe(document.body, {
+                    childList: true, 
+                    attributes: true,
+                    subtree: true
+                });
+                // Set a timeout for the maximum wait time
+                setTimeout(() => {
+                    observer.disconnect();
+                    resolve(false);
+                }, ''' + str(timeout * 1000) + ''');
+            });
+        '''
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(self.execute_script, script)
+            try:
+                return future.result(timeout=timeout + 2)
+            except concurrent.futures.TimeoutError:
+                log.debug(f'Timeout {timeout}(s) expired waiting for page to become inactive!')
+                return False
+
+    def wait_for_page_load_completed(self) -> None:
+        """
+        Wait untli page is full loaded, the lightest version (document ready state is 'complete')
+        """
+        state = None
+        while state != 'complete':
             # Ignore 'mypy --strict' error on a library function
-            self.execute_script('window.open('');')  # type: ignore[no-untyped-call]
-
-            # Switch to the new card (it's last on the card list)
-            self.switch_to.window(self.window_handles[-1])
-            self.get(url)
-
-            # Close the old card, if requested
-            if close_old_tab and old_tab != self.current_window_handle:
-                self.switch_to.window(old_tab)
-                self.close()
-
-                # Switch to the card opened above
-                self.switch_to.window(self.window_handles[-1])
-
-        except Exception as e:
-            print(f'Error navigating to "{url}": {e}')
-
-    @staticmethod
-    def dump_element(element: WebElement | None) -> None:
-        """
-        Dump web element data
-        :param element: WebElement
-        """
-        if element is None:
-            return
-        try:
-            print(f'Tag name: {element.tag_name}')
-            print(f'Text content: {element.text}')
-            print(f'Attributes:')
-            attributes = cast(list[dict[str, Any]], element.get_property('attributes'))
-            for attribute in attributes:
-                print(f'  - {attribute["name"]} = {attribute["value"]}')
-            print(f'Location on page: {element.location}')
-            print(f'Size: {element.size}')
-        except Exception as ex:
-            print(f'Exception occured while gathering detailed information for element {element}. '
-                  f'Details:\n{ex.__class__.__name__}:{str(ex)}')
-
-    @staticmethod
-    def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
-        """
-        Safely casts the list of WebElements which may also be None onto an actual list
-        :param unsafe_list: input list
-        :return: converted list
-        :raise RuntimeError if :param unsafe_list is None
-        """
-        if unsafe_list is None:
-            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
-        return unsafe_list
+            state = self.execute_script('return document.readyState')  # type: ignore[no-untyped-call]
+            log.debug(f'Page load state == {state}')
+            sleep(0.1)
