@@ -55,6 +55,7 @@ class Browser(Chrome):
 
         # supress mypy warning as service in WebDriver is actually defined as "service: Service = None"
         super().__init__(service=service, options=chrome_options)  # type: ignore[arg-type]
+        self.set_page_load_timeout(options.timeout)
 
         self.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
