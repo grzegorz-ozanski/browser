@@ -5,7 +5,7 @@ import concurrent.futures
 import os
 import shutil
 from datetime import datetime
-from time import sleep
+from time import sleep, time
 from typing import Any, Callable, cast
 
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
@@ -148,8 +148,7 @@ class Browser(Chrome):
                     return false;
                 }
             '''
-            # Ignore 'mypy --strict' error on a library function
-            if browser.execute_script(script, element):  # type: ignore[no-untyped-call]
+            if browser._execute_javascript(script, element):
                 return element
             return False
 
@@ -168,7 +167,7 @@ class Browser(Chrome):
         :param timeout: timeout or None if the default timeout should be used
         """
         try:
-            self.execute_script('arguments[0].click()', element)  # type: ignore[no-untyped-call]
+            self._execute_javascript('arguments[0].click()', element)
         except StaleElementReferenceException:
             if not (by and value):
                 raise
@@ -176,7 +175,7 @@ class Browser(Chrome):
             log.warning(f"Stale element exception occurred while trying to click (by={by}, value={value})")
             refreshed = self.wait_for_element(by, value, timeout)
             if refreshed:
-                self.execute_script("arguments[0].click();", refreshed)  # type: ignore[no-untyped-call]
+                self._execute_javascript("arguments[0].click();", refreshed)
             else:
                 raise
 
@@ -213,8 +212,7 @@ class Browser(Chrome):
             old_tab = self.current_window_handle
 
             # Open a new empty card
-            # Ignore 'mypy --strict' error on a library function
-            self.execute_script('window.open('');')  # type: ignore[no-untyped-call]
+            self._execute_javascript('window.open('');')
 
             # Switch to the new card (it's last on the card list)
             self.switch_to.window(self.window_handles[-1])
@@ -393,8 +391,7 @@ class Browser(Chrome):
                 setTimeout(() => resolve(false), ''' + str((timeout - 4) * 1000) + ''');
             });
         '''
-        # Ignore 'mypy --strict' error on a library function
-        self.execute_script(network_idle_script)  # type: ignore[no-untyped-call]
+        self._execute_javascript(network_idle_script)
 
         # Finally, wait a short time for any final rendering or initialization
         sleep(0.5)
@@ -446,7 +443,50 @@ class Browser(Chrome):
         """
         state = None
         while state != 'complete':
-            # Ignore 'mypy --strict' error on a library function
-            state = self.execute_script('return document.readyState')  # type: ignore[no-untyped-call]
+            state = self._execute_javascript('return document.readyState')
             log.debug(f'Page load state == {state}')
             sleep(0.1)
+
+
+    def wait_for_page_stable(self, stable_time: int, timeout: int | None = None) -> bool:
+        """Wait until no DOM changes occur for 'stable_time' seconds
+        :param stable_time: requested page stability time in seconds
+        :param timeout: timeout or None if the default timeout should be used
+        :return: True if the page became stable within timeout provided, False otherwise
+        """
+        timeout = timeout or self._default_timeout
+
+        last_dom_hash = None
+        stable_start = None
+
+        start_time = time()
+        while time() - start_time < timeout:
+            # Get the current DOM state hash
+            current_dom_hash = self._execute_javascript("""
+                return document.documentElement.outerHTML.length + 
+                       document.readyState + 
+                       (typeof jQuery !== 'undefined' ? jQuery.active : 0);
+            """)
+
+            if current_dom_hash == last_dom_hash:
+                if stable_start is None:
+                    stable_start = time()
+                elif time() - stable_start >= stable_time:
+                    return True  # Page has been stable
+            else:
+                stable_start = None  # Reset stability timer
+
+            last_dom_hash = current_dom_hash
+            sleep(0.1)
+
+        return False  # Timeout reached
+
+    def _execute_javascript(self, script: str, *args: Any) -> Any:
+        """
+        Wrapper for WebDriver.execute_script to satisfy 'mypy --scrict'
+        :param script: script to execute
+        :param args: script arguments
+        :return: script result
+        """
+        # Ignore 'mypy --strict' error on a library function
+        return self.execute_script(script, *args)   # type: ignore[no-untyped-call]
