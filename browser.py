@@ -180,6 +180,28 @@ class Browser(Chrome):
             else:
                 raise
 
+    def click_with_retry(self, element: WebElement, by: str, value: str, timeout: int | None = None) -> None:
+        """
+        Try to click an element until it's neither overlapped nor refreshed by DOM change, or timeout expires.
+        Ignores any ElementClickInterceptedException and StaleElementReferenceException unless timeout expires.
+        :param element: element to click
+        :param by: element locator strategy
+        :param value: element locator value
+        :param timeout: timeout or None if the default timeout should be used
+        :raises TimeoutException if timeout expired
+        """
+        start = monotonic()
+        while monotonic() - start < (timeout or self._default_timeout):
+            try:
+                element.click()
+            except ElementClickInterceptedException:
+                pass
+            except StaleElementReferenceException:
+                if refreshed := self.wait_for_element(by, value, timeout) is None:
+                    raise TimeoutException(f'Timeout expired waiting for refreshed element ("{by}", "{value}")!')
+                element = refreshed
+            sleep(0.5)
+
     def find_and_click_element_with_js(self, by: str, value: str) -> None:
         """
         Finds and force click an element, ignoring any elements that may overlap it
@@ -189,19 +211,6 @@ class Browser(Chrome):
 
         """
         self.click_element_with_js(self.find_element(by, value))
-
-    def force_click(self, element: WebElement, by: str = '', value: str = '', timeout: int | None = None) -> None:
-        start = monotonic()
-        while monotonic() - start < (timeout or self._default_timeout):
-            try:
-                element.click()
-            except ElementClickInterceptedException:
-                pass
-            except StaleElementReferenceException:
-                if not (by and value):
-                    raise
-                element = self.wait_for_element(by, value, timeout)
-            sleep(0.5)
 
     def force_get(self, url: str, close_old_tab: bool = True) -> None:
         """
