@@ -28,7 +28,7 @@ class PlatformInfo:
 
     def system_is(self, *name: str) -> bool:
         """
-        Check if system is any of the ones provided in name
+        Check if the system is any of the ones provided in a name
         :param name: list of systems to check
         :return: True if system matches any provided names, False otherwise
         """

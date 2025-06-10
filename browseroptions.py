@@ -48,7 +48,7 @@ class BrowserOptions:
 
     def _configure_chromedriver_location(self, root_path: str) -> None:
         """
-        Configure Chrome/Chromedriver path per operating system. Expectedy folder layout:
+        Configure a Chrome/Chromedriver path per operating system. Expectedy folder layout:
         root_path/
             └── chromedriver/
                 ├── chromedriver[.exe]

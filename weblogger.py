@@ -56,8 +56,8 @@ class WebLogger:
         Check if a log path was already created to avoid duplication.
         - If the path exists, return True
         - If the path does not exist, add it to the root_dir set and return False
-        :param subdir: path to check
-        :return: True if path already exists, False if not.
+        :param subdir: a path to check
+        :return: True if the path already exists, False if not.
         """
         if subdir in cls.root_dir:
             return True

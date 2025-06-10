@@ -29,7 +29,7 @@ def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
     with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
         for info in zip_file.infolist():
             if info.filename.startswith(archive_dir + "/") and not info.filename.endswith("/"):
-                # Replace archive_dir prefix with target_dir one
+                # Replace an archive_dir prefix with target_dir one
                 relative_path = info.filename[len(archive_dir) + 1:]
                 target_path = Path(output_dir, relative_path)
                 os.makedirs(target_path.parent, exist_ok=True)
@@ -77,7 +77,7 @@ class ChromeDownloader:
 
     def download_all(self, chromedriver_root: Path, chrome_subdir: str | Path) -> None:
         """
-        Downloads all components (Chrome driver and Chrome) into directories provided. Target directory tree will be:
+        Downloads all components (Chrome driver and Chrome) into directories provided. The target directory tree will be:
 
         <chromedriver_root>/
             ├── chromedriver[.exe]

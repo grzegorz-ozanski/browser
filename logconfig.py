@@ -26,7 +26,7 @@ class EnvironmentValue:
     @property
     def value(self) -> str:
         """
-        Get logger configuration item value, either from environment or from a cache
+        Get logger configuration item value, either from an environment or from a cache
         :return: item value
         """
         if self._value is None:
@@ -51,7 +51,7 @@ class LogConfig:
     @property
     def console(self) -> bool:
         """
-        :return: True if logs should be printed into console (default), False otherwise
+        :return: True if logs should be printed into the console (default), False otherwise
         """
         return bool(str_to_bool(self._console.value))
 
