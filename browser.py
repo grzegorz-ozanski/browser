@@ -5,10 +5,11 @@ import concurrent.futures
 import os
 import shutil
 from datetime import datetime
-from time import sleep, time
+from time import sleep, time, monotonic
 from typing import Any, Callable, cast
 
-from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, \
+    ElementClickInterceptedException
 from selenium.webdriver import Chrome, ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -189,17 +190,18 @@ class Browser(Chrome):
         """
         self.click_element_with_js(self.find_element(by, value))
 
-    def open_dropdown_menu(self, by: str, value: str) -> None:
-        """
-        Opens the provided dropdown menu
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
-        """
-        element = self.wait_for_element(by, value)
-        if element is not None:
-            ActionChains(self).move_to_element(element).perform()
-        else:
-            raise TimeoutException(f'Timeout expired waiting for element ("{by}", "{value}") to appear!')
+    def force_click(self, element: WebElement, by: str = '', value: str = '', timeout: int | None = None) -> None:
+        start = monotonic()
+        while monotonic() - start < (timeout or self._default_timeout):
+            try:
+                element.click()
+            except ElementClickInterceptedException:
+                pass
+            except StaleElementReferenceException:
+                if not (by and value):
+                    raise
+                element = self.wait_for_element(by, value, timeout)
+            sleep(0.5)
 
     def force_get(self, url: str, close_old_tab: bool = True) -> None:
         """
@@ -228,6 +230,18 @@ class Browser(Chrome):
 
         except Exception as e:
             print(f'Error navigating to "{url}": {e}')
+
+    def open_dropdown_menu(self, by: str, value: str) -> None:
+        """
+        Opens the provided dropdown menu
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        """
+        element = self.wait_for_element(by, value)
+        if element is not None:
+            ActionChains(self).move_to_element(element).perform()
+        else:
+            raise TimeoutException(f'Timeout expired waiting for element ("{by}", "{value}") to appear!')
 
     def safe_click(self, by: str, value: str, timeout: int | None = None, ignore_exception: bool = False) -> None:
         """
@@ -447,7 +461,6 @@ class Browser(Chrome):
             log.debug(f'Page load state == {state}')
             sleep(0.1)
 
-
     def wait_for_page_stable(self, stable_time: int, timeout: int | None = None) -> bool:
         """Wait until no DOM changes occur for 'stable_time' seconds
         :param stable_time: requested page stability time in seconds
@@ -489,4 +502,4 @@ class Browser(Chrome):
         :return: script result
         """
         # Ignore 'mypy --strict' error on a library function
-        return self.execute_script(script, *args)   # type: ignore[no-untyped-call]
+        return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
