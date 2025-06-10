@@ -197,7 +197,7 @@ class Browser(Chrome):
             except ElementClickInterceptedException:
                 pass
             except StaleElementReferenceException:
-                if refreshed := self.wait_for_element(by, value, timeout) is None:
+                if (refreshed := self.wait_for_element(by, value, timeout)) is None:
                     raise TimeoutException(f'Timeout expired waiting for refreshed element ("{by}", "{value}")!')
                 element = refreshed
             sleep(0.5)
