@@ -20,8 +20,8 @@ class BrowserOptions:
         :param save_trace_logs: if 'True', trace logs on page elements operations are saved
         :param timeout: default timeout value for relevant operations
         """
-        self.exe_path = ''
-        self.binary_location = ''
+        self.chromedriver_location = ''
+        self.chrome_location = ''
         self.user_data_dir = None
         self.driver_options = ['window-size=1200,1100', 'log-level=3', 'disable-dev-shm-usage',
                                # for multimedia service login error in headless mode
@@ -59,7 +59,7 @@ class BrowserOptions:
         """
         platform_info = PlatformInfo()
         if platform_info.system_is('Darwin'):  # running on macOS
-            self.exe_path = '/Users/greggor/Downloads/chromedriver'
+            self.chromedriver_location = '/Users/greggor/Downloads/chromedriver'
         elif platform_info.system_is('Linux', 'Windows'):
             chromedriver_root = Path(root_path).parent.joinpath('chromedriver')
             if not chromedriver_root.exists():
@@ -67,10 +67,10 @@ class BrowserOptions:
                 chrome_downloader = ChromeDownloader(platform_info.platform)
                 chrome_downloader.download_all(chromedriver_root, 'chrome')
             chromedriver_root = chromedriver_root.resolve(True)
-            self.exe_path = str(chromedriver_root.joinpath('chromedriver'))
-            self.binary_location = str(chromedriver_root.joinpath('chrome').joinpath('chrome'))
+            self.chromedriver_location = str(chromedriver_root.joinpath('chromedriver'))
+            self.chrome_location = str(chromedriver_root.joinpath('chrome').joinpath('chrome'))
             if platform_info.system_is('Windows'):
-                self.exe_path += '.exe'
-                self.binary_location += '.exe'
+                self.chromedriver_location += '.exe'
+                self.chrome_location += '.exe'
         else:
             raise NotImplementedError(f'"{platform_info.system}" is not supported.')

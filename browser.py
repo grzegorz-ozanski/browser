@@ -47,10 +47,10 @@ class Browser(Chrome):
         if options.driver_options:
             for opt in options.driver_options:
                 chrome_options.add_argument(opt)
-        if options.binary_location:
-            chrome_options.binary_location = options.binary_location
-        if options.exe_path:
-            service = Service(executable_path=options.exe_path)
+        if options.chrome_location:
+            chrome_options.binary_location = options.chrome_location
+        if options.chromedriver_location:
+            service = Service(executable_path=options.chromedriver_location)
         else:
             service = None
 
