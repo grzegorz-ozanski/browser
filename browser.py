@@ -56,6 +56,8 @@ class Browser(Chrome):
 
         # supress mypy warning as service in WebDriver is actually defined as "service: Service = None"
         super().__init__(service=service, options=chrome_options)  # type: ignore[arg-type]
+        # for headless mode, set window size at frist page open
+        self.set_window_size = any('headless' in arg for arg in chrome_options.arguments)
         self.set_page_load_timeout(options.timeout)
 
         self.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
@@ -212,7 +214,25 @@ class Browser(Chrome):
         """
         self.click_element_with_js(self.find_element(by, value))
 
-    def force_get(self, url: str, close_old_tab: bool = True) -> None:
+    def get(self, url: str) -> None:
+        """
+        Opens provider URL. In headless mode, at first call also sets screen size to match window size
+        :param url: URL to open
+        """
+        super().get(url)
+        if self.set_window_size:
+            window_size = self.get_window_size()
+            self.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
+                "width": window_size['width'],
+                "height": window_size['height'],
+                "deviceScaleFactor": 1,
+                "mobile": False,
+                "screenWidth": window_size['width'],
+                "screenHeight": window_size['height']
+            })
+            self.set_window_size = False
+
+    def open_in_new_tab(self, url: str, close_old_tab: bool = True) -> None:
         """
         Opens URL in a new browser card
 
