@@ -609,7 +609,7 @@ class Browser(Chrome):
                 ontouchstart: 'ontouchstart' in window,
                 DocumentTouch: !!window.DocumentTouch,
             },
-            canvasFingerprint: (() => {
+            canvasFingerprint: (function() {
                 try {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
@@ -623,31 +623,9 @@ class Browser(Chrome):
                 } catch (e) {
                     return null;
                 }
-            })(),
-            permissions: (async () => {
-                const names = ["geolocation", "notifications", "camera", "microphone", "clipboard-read"];
-                const results = {};
-                for (const name of names) {
-                    try {
-                        const p = await navigator.permissions.query({ name });
-                        results[name] = p.state;
-                    } catch (e) {
-                        results[name] = "unsupported";
-                    }
-                }
-                return results;
             })()
         };
         """
-        script = f"""
-            return (async () => {{
-                const fp = {fingerprint_js};
-                if (fp.permissions instanceof Promise) {{
-                    fp.permissions = await fp.permissions;
-                }}
-                return fp;
-            }})();
-        """
 
-        fingerprint = self.execute_script(script)
+        fingerprint = self.execute_script(fingerprint_js)
         print(json.dumps(fingerprint, indent=2, ensure_ascii=False))
