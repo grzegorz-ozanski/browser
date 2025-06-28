@@ -57,17 +57,53 @@ class Browser(Chrome):
         # supress mypy warning as service in WebDriver is actually defined as "service: Service = None"
         super().__init__(service=service, options=chrome_options)  # type: ignore[arg-type]
         # for headless mode, set window size at frist page open
-        self.set_window_size = any('headless' in arg for arg in chrome_options.arguments)
+        self.fix_window_size = any('headless' in arg for arg in chrome_options.arguments)
         self.set_page_load_timeout(options.timeout)
 
-        self.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": """
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                window.navigator.chrome = { runtime: {} };
-                Object.defineProperty(navigator, 'languages', {get: () => ['pl-PL', 'pl']});
-                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-            """
-        })
+        self._evade_detection()
+
+    def _evade_detection(self) -> None:
+        self.execute_cdp_cmd(
+            "Page.addScriptToEvaluateOnNewDocument",
+            {
+                "source": """
+    // 🛡️ navigator.webdriver = false
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => undefined
+    });
+
+    // 🛡️ window.chrome.runtime
+    window.chrome = {
+        runtime: {}
+    };
+
+    // 🛡️ navigator.plugins
+    Object.defineProperty(navigator, 'plugins', {
+      get: () => [1, 2, 3, 4, 5]
+    });
+
+    // 🛡️ navigator.languages
+    Object.defineProperty(navigator, 'languages', {
+      get: () => ['pl-PL', 'pl']
+    });
+
+    // 🛡️ navigator.permissions.query (spoof 'notifications')
+    const originalQuery = window.navigator.permissions.query;
+    window.navigator.permissions.query = (parameters) =>
+      parameters.name === 'notifications'
+        ? Promise.resolve({ state: Notification.permission })
+        : originalQuery(parameters);
+
+    // 🛡️ Fake WebGL vendor/renderer
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+      if (parameter === 37445) return 'Intel Inc.'; // UNMASKED_VENDOR_WEBGL
+      if (parameter === 37446) return 'Intel Iris OpenGL Engine'; // UNMASKED_RENDERER_WEBGL
+      return getParameter(parameter);
+    };
+    """
+            }
+        )
 
     def __del__(self) -> None:
         """
@@ -220,17 +256,21 @@ class Browser(Chrome):
         :param url: URL to open
         """
         super().get(url)
-        if self.set_window_size:
+        if self.fix_window_size:
             window_size = self.get_window_size()
             self.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
-                "width": window_size['width'],
-                "height": window_size['height'],
-                "deviceScaleFactor": 1,
+                "width": 1280,
+                "height": 800,
+                "deviceScaleFactor": 1.25,
                 "mobile": False,
                 "screenWidth": window_size['width'],
-                "screenHeight": window_size['height']
+                "screenHeight": window_size['height'],
+                "screenOrientation": {  # optional
+                    "angle": 0,
+                    "type": "landscapePrimary"
+                }
             })
-            self.set_window_size = False
+            self.fix_window_size = False
 
     def open_in_new_tab(self, url: str, close_old_tab: bool = True) -> None:
         """

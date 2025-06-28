@@ -10,28 +10,6 @@ from .chromedownloader import ChromeDownloader
 from .platforminfo import PlatformInfo
 
 
-def get_chrome_version(chrome_path: str, platform: str) -> str:
-    """
-    Gets Chrome version used
-    :param chrome_path: Path to the chrome binary
-    :param platform: 'Linux' or 'Windows'
-    :return: Chrome version string
-    """
-    try:
-        if platform == 'Linux':
-            output = subprocess.check_output([chrome_path, '--version'], stderr=subprocess.STDOUT)
-            # example output: "Google Chrome 138.0.7204.49"
-            match = re.search(r'(\d+\.\d+\.\d+\.\d+)', output.decode())
-            if match:
-                return match.group(1)
-        else:
-            output = subprocess.check_output(['powershell', '-command',f"(Get-Item '{chrome_path}').VersionInfo.ProductVersion"], stderr=subprocess.STDOUT)
-            return output.decode().strip()
-    except Exception as e:
-        print(f"[WARN] Could not detect Chrome version: {e}")
-    # fallback
-    return "113.0.0.0"
-
 
 class BrowserOptions:
     """
@@ -49,14 +27,14 @@ class BrowserOptions:
         self.chromedriver_location = ''
         self.chrome_location = ''
         self.user_data_dir = None
-        self.driver_options = ['window-size=1200,1100', 'log-level=3', 'disable-dev-shm-usage']
+        self.driver_options = ['disable-blink-features=AutomationControlled','window-size=1920,1200', 'log-level=3', 'disable-dev-shm-usage']
         self.save_trace_logs = save_trace_logs
         if headless:
             self.driver_options.append('headless')
         self.timeout = timeout
-        version = self._configure_chromedriver_location(root_path)
+        self._configure_chromedriver_location(root_path)
         self.driver_options.append('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                                   f'(KHTML, like Gecko) Chrome/{version} Safari/537.36') # for multimedia service login error in headless mode
+                                   f'(KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36') # for multimedia service login error in headless mode
         # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
         self.driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
         # Another remedy for reCatcha v3
@@ -70,7 +48,7 @@ class BrowserOptions:
         """
         return ', '.join([f'{name}={value}' for name, value in self.__dict__.items()])
 
-    def _configure_chromedriver_location(self, root_path: str) -> str:
+    def _configure_chromedriver_location(self, root_path: str) -> None:
         """
         Configure a Chrome/Chromedriver path per operating system. Expectedy folder layout:
         root_path/
@@ -80,12 +58,10 @@ class BrowserOptions:
                     ├── <chrome files>
                     └── chrome[.exe]
         :param root_path: Chrome/Chromedriver root path
-        :returns Version of Chrome/Chromedriver connfigured
         """
         platform_info = PlatformInfo()
         if platform_info.system_is('Darwin'):  # running on macOS
             self.chromedriver_location = '/Users/greggor/Downloads/chromedriver'
-            return '' #TODO fix
         if platform_info.system_is('Linux', 'Windows'):
             chromedriver_root = Path(root_path).parent.joinpath('chromedriver')
             if not chromedriver_root.exists():
@@ -98,7 +74,5 @@ class BrowserOptions:
             if platform_info.system_is('Windows'):
                 self.chromedriver_location += '.exe'
                 self.chrome_location += '.exe'
-                return get_chrome_version(self.chrome_location, 'Windows')
-            return get_chrome_version(self.chrome_location, 'Linux')
         else:
             raise NotImplementedError(f'"{platform_info.system}" is not supported.')
