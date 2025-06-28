@@ -2,6 +2,7 @@
     Wrapper class for Selenium Webdriver
 """
 import concurrent.futures
+import json
 import os
 import shutil
 from datetime import datetime
@@ -272,6 +273,7 @@ class Browser(Chrome):
                     "type": "landscapePrimary"
                 }
             })
+            self._dump_fingerprint()
             self.fix_window_size = False
 
     def open_in_new_tab(self, url: str, close_old_tab: bool = True) -> None:
@@ -574,3 +576,78 @@ class Browser(Chrome):
         """
         # Ignore 'mypy --strict' error on a library function
         return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
+
+    def _dump_fingerprint(self):
+        fingerprint_js = """
+        return {
+            userAgent: navigator.userAgent,
+            webdriver: navigator.webdriver,
+            languages: navigator.languages,
+            platform: navigator.platform,
+            hardwareConcurrency: navigator.hardwareConcurrency,
+            deviceMemory: navigator.deviceMemory,
+            maxTouchPoints: navigator.maxTouchPoints,
+            plugins: Array.from(navigator.plugins).map(p => p.name),
+            mimeTypes: Array.from(navigator.mimeTypes).map(m => m.type),
+            doNotTrack: navigator.doNotTrack,
+            screen: {
+                width: screen.width,
+                height: screen.height,
+                availWidth: screen.availWidth,
+                availHeight: screen.availHeight,
+                colorDepth: screen.colorDepth,
+                pixelDepth: screen.pixelDepth,
+            },
+            windowSize: {
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+                outerWidth: window.outerWidth,
+                outerHeight: window.outerHeight,
+            },
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            touchSupport: {
+                ontouchstart: 'ontouchstart' in window,
+                DocumentTouch: !!window.DocumentTouch,
+            },
+            canvasFingerprint: (() => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    ctx.textBaseline = "top";
+                    ctx.font = "14px 'Arial'";
+                    ctx.fillStyle = "#f60";
+                    ctx.fillRect(0, 0, 100, 30);
+                    ctx.fillStyle = "#069";
+                    ctx.fillText("fingerprint", 2, 15);
+                    return canvas.toDataURL();
+                } catch (e) {
+                    return null;
+                }
+            })(),
+            permissions: (async () => {
+                const names = ["geolocation", "notifications", "camera", "microphone", "clipboard-read"];
+                const results = {};
+                for (const name of names) {
+                    try {
+                        const p = await navigator.permissions.query({ name });
+                        results[name] = p.state;
+                    } catch (e) {
+                        results[name] = "unsupported";
+                    }
+                }
+                return results;
+            })()
+        };
+        """
+        script = f"""
+            return (async () => {{
+                const fp = {fingerprint_js};
+                if (fp.permissions instanceof Promise) {{
+                    fp.permissions = await fp.permissions;
+                }}
+                return fp;
+            }})();
+        """
+
+        fingerprint = self.execute_script(script)
+        print(json.dumps(fingerprint, indent=2, ensure_ascii=False))
