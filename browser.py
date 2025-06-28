@@ -48,8 +48,10 @@ class Browser(Chrome):
             for opt in options.driver_options:
                 chrome_options.add_argument(opt)
         if options.chrome_location:
+            log.debug(f'Using Chrome from "{options.chrome_location}"')
             chrome_options.binary_location = options.chrome_location
         if options.chromedriver_location:
+            log.debug(f'Using Chromedriver from "{options.chromedriver_location}"')
             service = Service(executable_path=options.chromedriver_location)
         else:
             service = None

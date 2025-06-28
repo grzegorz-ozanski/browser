@@ -16,12 +16,13 @@ class BrowserOptions:
     Browser options class
     """
 
-    def __init__(self, root_path: str, headless: bool, save_trace_logs: bool, timeout: int = 10) -> None:
+    def __init__(self, root_path: str, headless: bool, save_trace_logs: bool, chrome_path: str, timeout: int = 10) -> None:
         """
         Class construstor
         :param root_path: Chromediver root path
         :param headless: run Chrome browser in headless mode
         :param save_trace_logs: if 'True', trace logs on page elements operations are saved
+        :param chrome_path: Chrome path override
         :param timeout: default timeout value for relevant operations
         """
         self.chromedriver_location = ''
@@ -32,9 +33,9 @@ class BrowserOptions:
         if headless:
             self.driver_options.append('headless')
         self.timeout = timeout
-        self._configure_chromedriver_location(root_path)
+        self._configure_chromedriver_location(root_path, chrome_path)
         self.driver_options.append('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                                   f'(KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36') # for multimedia service login error in headless mode
+                                   f'(KHTML, like Gecko) Chrome/138.0.7204.49 Safari/537.36') # for multimedia service login error in headless mode
         # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
         self.driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
         # Another remedy for reCatcha v3
@@ -48,7 +49,7 @@ class BrowserOptions:
         """
         return ', '.join([f'{name}={value}' for name, value in self.__dict__.items()])
 
-    def _configure_chromedriver_location(self, root_path: str) -> None:
+    def _configure_chromedriver_location(self, root_path: str, chrome_path: str) -> None:
         """
         Configure a Chrome/Chromedriver path per operating system. Expectedy folder layout:
         root_path/
@@ -58,6 +59,7 @@ class BrowserOptions:
                     ├── <chrome files>
                     └── chrome[.exe]
         :param root_path: Chrome/Chromedriver root path
+        :param chrome_path: Chrome path override
         """
         platform_info = PlatformInfo()
         if platform_info.system_is('Darwin'):  # running on macOS
@@ -70,9 +72,14 @@ class BrowserOptions:
                 chrome_downloader.download_all(chromedriver_root, 'chrome')
             chromedriver_root = chromedriver_root.resolve(True)
             self.chromedriver_location = str(chromedriver_root.joinpath('chromedriver'))
-            self.chrome_location = str(chromedriver_root.joinpath('chrome').joinpath('chrome'))
+            if not chrome_path:
+                self.chrome_location = str(chromedriver_root.joinpath('chrome').joinpath('chrome'))
+            else:
+                self.chrome_location = chrome_path
             if platform_info.system_is('Windows'):
                 self.chromedriver_location += '.exe'
-                self.chrome_location += '.exe'
+                if not chrome_path:
+                    # Append '.exe' extension to Chrome path only if if was autodetected
+                    self.chrome_location += '.exe'
         else:
             raise NotImplementedError(f'"{platform_info.system}" is not supported.')
