@@ -50,7 +50,7 @@ browser/
 ├── platforminfo.py       # OS/platform detection
 ├── weblogger.py          # Contextual structured logging
 ├── logconfig.py          # Custom logging config
-├── log.py                # Helpers for setting up logging
+└── log.py                # Helpers for setting up logging
 ```
 
 ## 🙋 Author
