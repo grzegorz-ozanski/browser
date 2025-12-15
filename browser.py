@@ -40,6 +40,8 @@ class Browser(Chrome):
         self._default_timeout = options.timeout
         self.user_data_dir = options.user_data_dir
         self._error_log_dir = options.error_log_dir
+        self.user_data_dir_delete_retries = 3
+        self.user_data_dir_delete_retries_interval = 5
 
         log.debug(f'Creating new Chrome instance with parameters: "{options}"')
 
@@ -113,7 +115,12 @@ class Browser(Chrome):
             Delete user profile if exists
         """
         if self.user_data_dir and self.user_data_dir.exists():
-            shutil.rmtree(self.user_data_dir)
+            for i in range(self.user_data_dir_delete_retries):
+                try:
+                    shutil.rmtree(self.user_data_dir)
+                    break
+                except PermissionError:
+                    sleep(self.user_data_dir_delete_retries_interval * 2**i)
 
     @property
     def error_log_dir(self) -> str:
