@@ -65,51 +65,6 @@ class Browser(Chrome):
         self.fix_window_size = any('headless' in arg for arg in chrome_options.arguments)
         self.set_page_load_timeout(options.timeout)
 
-        self._evade_detection()
-
-    def _evade_detection(self) -> None:
-        self.execute_cdp_cmd(
-            "Page.addScriptToEvaluateOnNewDocument",
-            {
-                "source": """
-    // 🛡️ navigator.webdriver = false
-    Object.defineProperty(navigator, 'webdriver', {
-      get: () => undefined
-    });
-
-    // 🛡️ window.chrome.runtime
-    window.chrome = {
-        runtime: {}
-    };
-
-    // 🛡️ navigator.plugins
-    Object.defineProperty(navigator, 'plugins', {
-      get: () => [1, 2, 3, 4, 5]
-    });
-
-    // 🛡️ navigator.languages
-    Object.defineProperty(navigator, 'languages', {
-      get: () => ['pl-PL', 'pl']
-    });
-
-    // 🛡️ navigator.permissions.query (spoof 'notifications')
-    const originalQuery = window.navigator.permissions.query;
-    window.navigator.permissions.query = (parameters) =>
-      parameters.name === 'notifications'
-        ? Promise.resolve({ state: Notification.permission })
-        : originalQuery(parameters);
-
-    // 🛡️ Fake WebGL vendor/renderer
-    const getParameter = WebGLRenderingContext.prototype.getParameter;
-    WebGLRenderingContext.prototype.getParameter = function(parameter) {
-      if (parameter === 37445) return 'Intel Inc.'; // UNMASKED_VENDOR_WEBGL
-      if (parameter === 37446) return 'Intel Iris OpenGL Engine'; // UNMASKED_RENDERER_WEBGL
-      return getParameter(parameter);
-    };
-    """
-            }
-        )
-
     def __del__(self) -> None:
         """
             Delete user profile if exists
@@ -132,76 +87,6 @@ class Browser(Chrome):
     @error_log_dir.setter
     def error_log_dir(self, value: str) -> None:
         self._error_log_dir = value
-
-    @staticmethod
-    def dump_element(element: WebElement | None) -> None:
-        """
-        Dump web element data
-        :param element: WebElement
-        """
-        if element is None:
-            return
-        try:
-            print(f'Tag name: {element.tag_name}')
-            print(f'Text content: {element.text}')
-            print(f'Attributes:')
-            attributes = cast(list[dict[str, Any]], element.get_property('attributes'))
-            for attribute in attributes:
-                print(f'  - {attribute["name"]} = {attribute["value"]}')
-            print(f'Location on page: {element.location}')
-            print(f'Size: {element.size}')
-        except Exception as ex:
-            print(f'Exception occured while gathering detailed information for element {element}. '
-                  f'Details:\n{ex.__class__.__name__}:{str(ex)}')
-
-    @staticmethod
-    def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
-        """
-        Safely casts the list of WebElements which may also be None onto an actual list
-        :param unsafe_list: input list
-        :return: converted list
-        :raise RuntimeError if :param unsafe_list is None
-        """
-        if unsafe_list is None:
-            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
-        return unsafe_list
-
-    @staticmethod
-    def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
-        """
-        Check if other elements do not overlap the provided one (i.e., the element is available for interaction)
-        :param element: WebElement to check
-        :return: Callable to use as predicate
-        """
-
-        def _check(browser: Browser) -> bool | WebElement:
-            """
-            Interanal function to be used as predicate for WebDriverWait
-            :param browser: WebDriver object
-            :return: Web element provided in "element" when becomes available for interaction
-            """
-            script = '''
-                const element = arguments[0];
-                const rect = element.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-
-                // Get the element at the center point
-                const elementAtPoint = document.elementFromPoint(centerX, centerY);
-
-                // Check if either element or elementAtPoint is null
-                if (element && elementAtPoint) {
-                    // Check if the element or one of its descendants is at that point
-                    return (elementAtPoint === element) || element.contains(elementAtPoint) || elementAtPoint.contains(element);
-                } else {
-                    return false;
-                }
-            '''
-            if browser._execute_javascript(script, element):
-                return element
-            return False
-
-        return _check
 
     def click_element_with_js(self, element: WebElement, by: str = '', value: str = '',
                               timeout: int | None = None) -> None:
@@ -280,7 +165,6 @@ class Browser(Chrome):
                     "type": "landscapePrimary"
                 }
             })
-            self._dump_fingerprint()
             self.fix_window_size = False
 
     def open_in_new_tab(self, url: str, close_old_tab: bool = True) -> None:
@@ -584,55 +468,52 @@ class Browser(Chrome):
         # Ignore 'mypy --strict' error on a library function
         return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
 
-    def _dump_fingerprint(self):
-        fingerprint_js = """
-        return {
-            userAgent: navigator.userAgent,
-            webdriver: navigator.webdriver,
-            languages: navigator.languages,
-            platform: navigator.platform,
-            hardwareConcurrency: navigator.hardwareConcurrency,
-            deviceMemory: navigator.deviceMemory,
-            maxTouchPoints: navigator.maxTouchPoints,
-            plugins: Array.from(navigator.plugins).map(p => p.name),
-            mimeTypes: Array.from(navigator.mimeTypes).map(m => m.type),
-            doNotTrack: navigator.doNotTrack,
-            screen: {
-                width: screen.width,
-                height: screen.height,
-                availWidth: screen.availWidth,
-                availHeight: screen.availHeight,
-                colorDepth: screen.colorDepth,
-                pixelDepth: screen.pixelDepth,
-            },
-            windowSize: {
-                innerWidth: window.innerWidth,
-                innerHeight: window.innerHeight,
-                outerWidth: window.outerWidth,
-                outerHeight: window.outerHeight,
-            },
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            touchSupport: {
-                ontouchstart: 'ontouchstart' in window,
-                DocumentTouch: !!window.DocumentTouch,
-            },
-            canvasFingerprint: (function() {
-                try {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    ctx.textBaseline = "top";
-                    ctx.font = "14px 'Arial'";
-                    ctx.fillStyle = "#f60";
-                    ctx.fillRect(0, 0, 100, 30);
-                    ctx.fillStyle = "#069";
-                    ctx.fillText("fingerprint", 2, 15);
-                    return canvas.toDataURL();
-                } catch (e) {
-                    return null;
-                }
-            })()
-        };
+    @staticmethod
+    def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
+        """
+        Safely casts the list of WebElements which may also be None onto an actual list
+        :param unsafe_list: input list
+        :return: converted list
+        :raise RuntimeError if :param unsafe_list is None
+        """
+        if unsafe_list is None:
+            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
+        return unsafe_list
+
+    @staticmethod
+    def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
+        """
+        Check if other elements do not overlap the provided one (i.e., the element is available for interaction)
+        :param element: WebElement to check
+        :return: Callable to use as predicate
         """
 
-        fingerprint = self.execute_script(fingerprint_js)
-        print(json.dumps(fingerprint, indent=2, ensure_ascii=False))
+        def _check(browser: Browser) -> bool | WebElement:
+            """
+            Interanal function to be used as predicate for WebDriverWait
+            :param browser: WebDriver object
+            :return: Web element provided in "element" when becomes available for interaction
+            """
+            script = '''
+                const element = arguments[0];
+                const rect = element.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                // Get the element at the center point
+                const elementAtPoint = document.elementFromPoint(centerX, centerY);
+
+                // Check if either element or elementAtPoint is null
+                if (element && elementAtPoint) {
+                    // Check if the element or one of its descendants is at that point
+                    return (elementAtPoint === element) || element.contains(elementAtPoint) || elementAtPoint.contains(element);
+                } else {
+                    return false;
+                }
+            '''
+            if browser._execute_javascript(script, element):
+                return element
+            return False
+
+        return _check
+
