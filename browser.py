@@ -124,14 +124,22 @@ class Browser(Chrome):
         :raises TimeoutException if timeout expired
         """
         start = monotonic()
-        while monotonic() - start < (timeout or self._default_timeout):
+        exception_occurred = True
+        while monotonic() - start < (timeout or self._default_timeout) and exception_occurred:
+            log.debug('Pre element.click')
             try:
+                exception_occurred = False
                 element.click()
+                log.debug('Post element.click')
             except ElementClickInterceptedException:
+                log.debug('ElementClickInterceptedException occured while clicking %s', element)
+                exception_occurred = True
                 pass
             except StaleElementReferenceException:
                 if (refreshed := self.wait_for_element(by, value, timeout)) is None:
                     raise TimeoutException(f'Timeout expired waiting for refreshed element ("{by}", "{value}")!')
+                exception_occurred = True
+                log.debug('StaleElementReferenceException occured while clicking %s', element)
                 element = refreshed
             sleep(0.5)
 
