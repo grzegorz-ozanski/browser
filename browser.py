@@ -75,7 +75,10 @@ class Browser(Chrome):
                     shutil.rmtree(self.user_data_dir)
                     break
                 except PermissionError:
-                    sleep(self.user_data_dir_delete_retries_interval * 2**i)
+                    try:
+                        sleep(self.user_data_dir_delete_retries_interval * 2**i)
+                    except OSError:
+                        pass
 
     @property
     def error_log_dir(self) -> str:
