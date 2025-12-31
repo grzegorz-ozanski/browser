@@ -2,7 +2,6 @@
     Wrapper class for Selenium Webdriver
 """
 import concurrent.futures
-import json
 import os
 import shutil
 from datetime import datetime
@@ -478,6 +477,27 @@ class Browser(Chrome):
         """
         # Ignore 'mypy --strict' error on a library function
         return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
+
+    @staticmethod
+    def dump_element(element: WebElement | None) -> None:
+        """
+        Dump web element data
+        :param element: WebElement
+        """
+        if element is None:
+            return
+        try:
+            print(f'Tag name: {element.tag_name}')
+            print(f'Text content: {element.text}')
+            print(f'Attributes:')
+            attributes = cast(list[dict[str, Any]], cast(object, element.get_property('attributes')))
+            for attribute in attributes:
+                print(f'  - {attribute["name"]} = {attribute["value"]}')
+            print(f'Location on page: {element.location}')
+            print(f'Size: {element.size}')
+        except Exception as ex:
+            print(f'Exception occured while gathering detailed information for element {element}. '
+                  f'Details:\n{ex.__class__.__name__}:{str(ex)}')
 
     @staticmethod
     def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:

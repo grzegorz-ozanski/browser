@@ -1,8 +1,6 @@
 """
     Browser options
 """
-import re
-import subprocess
 import tempfile
 from pathlib import Path
 
@@ -79,7 +77,7 @@ class BrowserOptions:
             if platform_info.system_is('Windows'):
                 self.chromedriver_location += '.exe'
                 if not chrome_path:
-                    # Append '.exe' extension to Chrome path only if if was autodetected
+                    # Append '.exe' extension to Chrome path only if it was autodetected
                     self.chrome_location += '.exe'
         else:
             raise NotImplementedError(f'"{platform_info.system}" is not supported.')
