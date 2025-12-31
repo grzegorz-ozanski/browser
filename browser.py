@@ -19,6 +19,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from .page_element import PageElement
 from .browseroptions import BrowserOptions
 from .log import setup_logging
 
@@ -115,6 +116,19 @@ class Browser(Chrome):
             else:
                 raise
 
+    def click_page_element_with_js(self, element: WebElement, page_element: PageElement,
+                              timeout: int | None = None) -> None:
+        """
+        Force click an element, ignoring any elements that may overlap it.
+        If :param by and :param value are provided, the element will be searched for again if StaleElementReferenceException
+        occurs during the click.
+
+        :param element: WebElement to click
+        :param page_element: element locator
+        :param timeout: timeout or None if the default timeout should be used
+        """
+        self.click_element_with_js(element, page_element.by, page_element.selector, timeout)
+
     def click_with_retry(self, element: WebElement, by: str, value: str, timeout: int | None = None) -> None:
         """
         Try to click an element until it's neither overlapped nor refreshed by DOM change, or timeout expires.
@@ -151,9 +165,26 @@ class Browser(Chrome):
 
         :param by: locator strategy as provided in selenium.webdriver.common.by.By class
         :param value: locator value
-
         """
         self.click_element_with_js(self.find_element(by, value))
+
+    def find_and_click_page_element_with_js(self, page_element: PageElement) -> None:
+        """
+        Finds and force click an element, ignoring any elements that may overlap it
+
+        :param page_element: locator
+        """
+        self.click_element_with_js(self.find_element(page_element.by, page_element.selector))
+
+    def find_page_element(self, page_element: PageElement) -> WebElement:
+        """
+        Finds page element
+
+        :param page_element: element to look for
+
+        :return: WebElement found
+        """
+        return self.find_element(page_element.by, page_element.selector)
 
     def get(self, url: str) -> None:
         """
@@ -229,6 +260,17 @@ class Browser(Chrome):
         """
         self.trace_click(
             self.wait_for_element_clickable(by, value, timeout), ignore_exception)
+
+    def safe_click_page_element(self, page_element: PageElement, timeout: int | None = None, ignore_exception: bool = False) -> None:
+        """
+        Wait until the provided WebElement becomes clickable, then click it and save its screenshot if the click fails
+
+        :param page_element: element locator
+        :param timeout: timeout or None if default timeout should be used
+        :param ignore_exception: raise exception if True, ignore if False (default: False)
+        :raises any exception caused by element.click() if ignore_exception is set to False (default)
+        """
+        self.safe_click(page_element.by, page_element.selector, timeout, ignore_exception)
 
     def trace_click(self, element: WebElement, ignore_exception: bool = False) -> None:
         """
@@ -383,6 +425,28 @@ class Browser(Chrome):
 
         # Finally, wait a short time for any final rendering or initialization
         sleep(0.5)
+
+    def wait_for_page_element(self, page_element: PageElement, timeout: int | None = None) -> WebElement | None:
+        """
+        Wait until all matching elements become visible, or timeout expires, then return the first one
+
+        :param page_element: element to wait for
+        :param timeout: timeout or None if the default timeout should be used
+
+        :return: WebElement found or None if timeout expired
+        """
+        return self.wait_for_element(page_element.by, page_element.selector, timeout)
+
+    def wait_for_page_elements(self, page_elements: PageElement, timeout: int | None = None) -> list[WebElement] | None:
+        """
+        Wait until all matching elements become visible, or the timeout expires
+
+        :param page_elements: elements to wait for
+        :param timeout: timeout or None if the default timeout should be used
+
+        :return: list of found WebElements or None if timeout expired
+        """
+        return self.wait_for_elements(page_elements.by, page_elements.selector, timeout)
 
     def wait_for_page_inactive(self, timeout: int | None = None) -> Any:
         """
