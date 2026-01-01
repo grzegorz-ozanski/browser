@@ -28,12 +28,12 @@ def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
     """
     with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
         for info in zip_file.infolist():
-            if info.filename.startswith(archive_dir + "/") and not info.filename.endswith("/"):
+            if info.filename.startswith(archive_dir + '/') and not info.filename.endswith('/'):
                 # Replace an archive_dir prefix with target_dir one
                 relative_path = info.filename[len(archive_dir) + 1:]
                 target_path = Path(output_dir, relative_path)
                 os.makedirs(target_path.parent, exist_ok=True)
-                with zip_file.open(info) as src, open(target_path, "wb") as dst:
+                with zip_file.open(info) as src, open(target_path, 'wb') as dst:
                     # supress the warning as the result of open() actually is a BufferedWriter
                     # noinspection PyTypeChecker
                     shutil.copyfileobj(src, dst)

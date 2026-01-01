@@ -37,7 +37,7 @@ class BrowserOptions:
         # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
         self.driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
         # Another remedy for reCatcha v3
-        self.user_data_dir = Path(tempfile.gettempdir(), "myprofile")
+        self.user_data_dir = Path(tempfile.gettempdir(), 'myprofile')
         self.driver_options += [f'user-data-dir={self.user_data_dir}']
         self.error_log_dir = 'error'
 

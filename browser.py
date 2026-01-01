@@ -66,7 +66,7 @@ class Browser(Chrome):
         self.user_data_dir_delete_retries = 3
         self.user_data_dir_delete_retries_interval = 5
 
-        log.debug(f'Creating new Chrome instance with parameters: "{options}"')
+        log.debug('Creating new Chrome instance with parameters: "%s"', options)
 
         chrome_options = Options()
 
@@ -74,10 +74,10 @@ class Browser(Chrome):
             for opt in options.driver_options:
                 chrome_options.add_argument(opt)
         if options.chrome_location:
-            log.debug(f'Using Chrome from "{options.chrome_location}"')
+            log.debug('Using Chrome from "%s"', options.chrome_location)
             chrome_options.binary_location = options.chrome_location
         if options.chromedriver_location:
-            log.debug(f'Using Chromedriver from "{options.chromedriver_location}"')
+            log.debug('Using Chromedriver from "%s"', options.chromedriver_location)
             service = Service(executable_path=options.chromedriver_location)
         else:
             service = None
@@ -181,7 +181,7 @@ class Browser(Chrome):
         try:
             self.click_element_using_js(element)
         except StaleElementReferenceException:
-            log.warning(f"Stale element exception occurred while trying to click (by={by}, value={value})")
+            log.warning('Stale element exception occurred while trying to click (by=%s, value=%s)', by, value)
             refreshed = self.wait_for_element(by, value, timeout)
             if refreshed:
                 self.click_element_using_js(refreshed)
@@ -249,16 +249,16 @@ class Browser(Chrome):
         super().get(url)
         if self.fix_window_size:
             window_size = self.get_window_size()
-            self.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
-                "width": 1280,
-                "height": 800,
-                "deviceScaleFactor": 1.25,
-                "mobile": False,
-                "screenWidth": window_size['width'],
-                "screenHeight": window_size['height'],
-                "screenOrientation": {  # optional
-                    "angle": 0,
-                    "type": "landscapePrimary"
+            self.execute_cdp_cmd('Emulation.setDeviceMetricsOverride', {
+                'width': 1280,
+                'height': 800,
+                'deviceScaleFactor': 1.25,
+                'mobile': False,
+                'screenWidth': window_size['width'],
+                'screenHeight': window_size['height'],
+                'screenOrientation': {  # optional
+                    'angle': 0,
+                    'type': 'landscapePrimary'
                 }
             })
             self.fix_window_size = False

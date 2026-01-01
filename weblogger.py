@@ -75,7 +75,7 @@ class WebLogger:
         Raises:
             None
         """
-        filename = self._get_filename("error")
+        filename = self._get_filename('error')
         self._write_logs(filename)
 
     def trace(self, suffix: str) -> None:
@@ -98,7 +98,7 @@ class WebLogger:
             None
         """
         if self.browser.save_trace_logs:
-            filename = self._get_filename("trace", suffix)
+            filename = self._get_filename('trace', suffix)
             self._write_logs(filename)
 
     def _get_dir(self, level: str) -> str:
@@ -107,7 +107,7 @@ class WebLogger:
         :param level: debug level name
         :return: logs dir
         """
-        if level != "error":
+        if level != 'error':
             return os.path.join(level, self.name)
         return level
 
@@ -117,12 +117,12 @@ class WebLogger:
         """
         self.trace_id[subdir] = self.trace_id.get(subdir, 0) + 1
         timestamp = datetime.today().isoformat(sep=' ', timespec='milliseconds').replace(':', '-')
-        filename = f"{self.trace_id[subdir]:0>3} {timestamp} {_get_caller()} {suffix}".strip()
+        filename = f'{self.trace_id[subdir]:0>3} {timestamp} {_get_caller()} {suffix}'.strip()
         if not self._path_already_created(subdir):
             if os.path.exists(subdir):
                 last_number = max([int(d.split('.')[1]) if '.' in d else 0
                                    for d in os.listdir()
-                                   if d.startswith(f"{subdir}") and os.path.isdir(d)], default=0)
+                                   if d.startswith(f'{subdir}') and os.path.isdir(d)], default=0)
                 os.rename(subdir, f'{subdir}.{last_number + 1:>03}')
         subdir = self._get_dir(subdir)
         os.makedirs(subdir, exist_ok=True)
@@ -132,6 +132,6 @@ class WebLogger:
         """
             Generate a structured filename for the log output.
         """
-        self.browser.save_screenshot(f"{filename}.png")
-        with open(f"{filename}.html", "w", encoding="utf-8") as page_source_file:
+        self.browser.save_screenshot(f'{filename}.png')
+        with open(f'{filename}.html', 'w', encoding='utf-8') as page_source_file:
             page_source_file.write(self.browser.page_source)

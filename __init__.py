@@ -8,9 +8,9 @@ from .locator import Locator
 from .weblogger import WebLogger
 
 __all__ = [
-    "Browser",
-    "BrowserOptions",
-    "WebLogger",
-    "Locator",
-    "setup_logging"
+    'Browser',
+    'BrowserOptions',
+    'WebLogger',
+    'Locator',
+    'setup_logging'
 ]
