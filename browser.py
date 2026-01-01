@@ -5,12 +5,12 @@ import concurrent.futures
 import os
 import shutil
 from datetime import datetime
-from time import sleep, time, monotonic
+from time import sleep, monotonic
 from typing import Any, Callable, cast
 
 from selenium.common.exceptions import (TimeoutException, StaleElementReferenceException,
                                         ElementClickInterceptedException, NoSuchElementException)
-from selenium.webdriver import Chrome, ActionChains
+from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.remote.webelement import WebElement
@@ -25,6 +25,29 @@ from .log import setup_logging
 
 log = setup_logging(__name__)
 
+class PageElement(WebElement):
+    def __init__(self, element: WebElement) -> None:
+        super().__init__(element.parent, element._id)
+
+    def find_page_element(self, locator: Locator) -> 'PageElement':
+        """
+        Finds page element
+
+        :param locator: element to look for
+
+        :return: WebElement found
+        """
+        return self.find_element(locator.type, locator.value)
+
+    def find_page_elements(self, locator: Locator) -> list['PageElement']:
+        """
+        Finds page elements
+
+        :param locator: elements to look for
+
+        :return: PageElements found
+        """
+        return [PageElement(element) for element in self.find_elements(locator.type, locator.value)]
 
 class Browser(Chrome):
     """
@@ -198,25 +221,25 @@ class Browser(Chrome):
         """
         self.click_element_using_js(self.find_element(locator.type, locator.value))
 
-    def find_page_element(self, locator: Locator) -> WebElement:
+    def find_page_element(self, locator: Locator) -> PageElement:
         """
         Finds page element
 
         :param locator: element to look for
 
-        :return: WebElement found
+        :return: PageElement found
         """
-        return self.find_element(locator.type, locator.value)
+        return PageElement(self.find_element(locator.type, locator.value))
 
-    def find_page_elements(self, locator: Locator) -> list[WebElement]:
+    def find_page_elements(self, locator: Locator) -> list[PageElement]:
         """
         Finds page elements
 
         :param locator: elements to look for
 
-        :return: WebElement found
+        :return: PageElements found
         """
-        return self.find_elements(locator.type, locator.value)
+        return [PageElement(element) for element in self.find_elements(locator.type, locator.value)]
 
     def get(self, url: str) -> None:
         """
@@ -419,28 +442,30 @@ class Browser(Chrome):
         sleep(0.5)
 
     def wait_for_page_element(self, locator: Locator,
-                              timeout: int | None = None) -> WebElement | None:
+                              timeout: int | None = None) -> PageElement | None:
         """
         Wait until all matching elements become visible, or timeout expires, then return the first one
 
         :param locator: element to wait for
         :param timeout: timeout or None if the default timeout should be used
 
-        :return: WebElement found or None if timeout expired
+        :return: PageElement found or None if timeout expired
         """
-        return self.wait_for_element(locator.type, locator.value, timeout)
+        element = self.wait_for_element(locator.type, locator.value, timeout)
+        return None if element is None else PageElement(element)
 
     def wait_for_page_element_clickable(self, locator: Locator,
-                                        timeout: int | None = None) -> WebElement:
+                                        timeout: int | None = None) -> PageElement:
         """
         Wait until a web element becomes clickable or the timeout expires
 
         :param locator: element locator
         :param timeout: timeout or None if the default timeout should be used
 
-        :return Clickable WebElement reference
+        :return Clickable PageElement reference
         """
-        return self.wait_for_element_clickable(locator.type, locator.value, timeout)
+        element = self.wait_for_element_clickable(locator.type, locator.value, timeout)
+        return None if element is None else PageElement(element)
 
     def wait_for_page_element_disappear(self, locator: Locator,
                                         timeout: int | None = None) -> None:
@@ -456,16 +481,17 @@ class Browser(Chrome):
         return None
 
     def wait_for_page_elements(self, page_elements: Locator,
-                               timeout: int | None = None) -> list[WebElement] | None:
+                               timeout: int | None = None) -> list[PageElement] | None:
         """
         Wait until all matching elements become visible, or the timeout expires
 
         :param page_elements: elements to wait for
         :param timeout: timeout or None if the default timeout should be used
 
-        :return: list of found WebElements or None if timeout expired
+        :return: list of found PageElement or None if timeout expired
         """
-        return self.wait_for_elements(page_elements.type, page_elements.value, timeout)
+        elements = self.wait_for_elements(page_elements.type, page_elements.value, timeout)
+        return None if elements is None else [PageElement(element) for element in elements]
 
     def wait_for_page_inactive(self, timeout: int | None = None) -> Any:
         """
@@ -550,7 +576,7 @@ class Browser(Chrome):
                   f'Details:\n{ex.__class__.__name__}:{str(ex)}')
 
     @staticmethod
-    def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
+    def safe_elements_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
         """
         Safely casts the list of WebElements which may also be None onto an actual list
         :param unsafe_list: input list
@@ -560,6 +586,18 @@ class Browser(Chrome):
         if unsafe_list is None:
             raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
         return unsafe_list
+
+    @staticmethod
+    def safe_page_elements_list(unsafe_list: list[WebElement] | None) -> list[PageElement]:
+        """
+        Safely casts the list of WebElements which may also be None onto an actual list
+        :param unsafe_list: input list
+        :return: converted list
+        :raise RuntimeError if :param unsafe_list is None
+        """
+        if unsafe_list is None:
+            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
+        return [PageElement(element) for element in unsafe_list]
 
     @staticmethod
     def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
