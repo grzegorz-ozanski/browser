@@ -210,6 +210,16 @@ class Browser(Chrome):
         """
         return self.find_element(page_element.by, page_element.selector)
 
+    def find_page_elements(self, page_element: PageElement) -> list[WebElement]:
+        """
+        Finds page elements
+
+        :param page_element: elements to look for
+
+        :return: WebElement found
+        """
+        return self.find_elements(page_element.by, page_element.selector)
+
     def get(self, url: str) -> None:
         """
         Opens provider URL. In headless mode, at first call also sets screen size to match window size
@@ -402,6 +412,17 @@ class Browser(Chrome):
 
         return clickable
 
+    def wait_for_page_element_clickable(self, page_element: PageElement, timeout: int | None = None) -> WebElement:
+        """
+        Wait until a web element becomes clickable or the timeout expires
+
+        :param page_element: element locator
+        :param timeout: timeout or None if the default timeout should be used
+
+        :return Clickable WebElement reference
+        """
+        return self.wait_for_element_clickable(page_element.by, page_element.selector, timeout)
+
     def wait_for_page_element_disappear(self, page_element: PageElement, timeout: int | None = None) -> None:
         """
         Wait until a web element disappears or timeout expires
@@ -585,6 +606,18 @@ class Browser(Chrome):
         except Exception as ex:
             print(f'Exception occured while gathering detailed information for element {element}. '
                   f'Details:\n{ex.__class__.__name__}:{str(ex)}')
+
+    @staticmethod
+    def find_page_element_in(where: WebElement, page_element: PageElement) -> WebElement:
+        """
+        Finds page element in provided element
+
+        :param where: WebElement to search in
+        :param page_element: element to look for
+
+        :return: WebElement found
+        """
+        return where.find_element(page_element.by, page_element.selector)
 
     @staticmethod
     def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
