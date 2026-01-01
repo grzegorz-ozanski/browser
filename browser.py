@@ -98,51 +98,20 @@ class Browser(Chrome):
 
         :raise NoSuchElementException if web element cannot be found
         """
-
         webelement = self.wait_for_page_element(page_element, timeout)
         if not webelement:
             raise NoSuchElementException
         webelement.click()
 
-    def click_element_with_js(self, element: WebElement, by: str = '', value: str = '',
-                              timeout: int | None = None) -> None:
+    def click_element_using_js(self, element: WebElement) -> None:
         """
         Force click an element, ignoring any elements that may overlap it.
-        If :param by and :param value are provided, the element will be searched for again if StaleElementReferenceException
-        occurs during the click.
 
         :param element: WebElement to click
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
-        :param timeout: timeout or None if the default timeout should be used
         """
-        try:
-            self._execute_javascript('arguments[0].click()', element)
-        except StaleElementReferenceException:
-            if not (by and value):
-                raise
+        self._execute_javascript('arguments[0].click()', element)
 
-            log.warning(f"Stale element exception occurred while trying to click (by={by}, value={value})")
-            refreshed = self.wait_for_element(by, value, timeout)
-            if refreshed:
-                self._execute_javascript("arguments[0].click();", refreshed)
-            else:
-                raise
-
-    def click_page_element_with_js(self, element: WebElement, page_element: PageElement,
-                              timeout: int | None = None) -> None:
-        """
-        Force click an element, ignoring any elements that may overlap it.
-        If :param by and :param value are provided, the element will be searched for again if StaleElementReferenceException
-        occurs during the click.
-
-        :param element: WebElement to click
-        :param page_element: element locator
-        :param timeout: timeout or None if the default timeout should be used
-        """
-        self.click_element_with_js(element, page_element.by, page_element.selector, timeout)
-
-    def click_with_retry(self, element: WebElement, by: str, value: str, timeout: int | None = None) -> None:
+    def click_element_with_retry(self, element: WebElement, by: str, value: str, timeout: int | None = None) -> None:
         """
         Try to click an element until it's neither overlapped nor refreshed by DOM change, or timeout expires.
         Ignores any ElementClickInterceptedException and StaleElementReferenceException unless timeout expires.
@@ -172,6 +141,28 @@ class Browser(Chrome):
                 element = refreshed
             sleep(0.5)
 
+    def click_element_with_retry_using_js(self, element: WebElement, by: str, value: str,
+                                          timeout: int | None = None) -> None:
+        """
+        Force click an element, ignoring any elements that may overlap it.
+        Searches for refreshed element if StaleElementReferenceException
+        occurs during the click.
+
+        :param element: WebElement to click
+        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
+        :param value: locator value
+        :param timeout: timeout or None if the default timeout should be used
+        """
+        try:
+            self.click_element_using_js(element)
+        except StaleElementReferenceException:
+            log.warning(f"Stale element exception occurred while trying to click (by={by}, value={value})")
+            refreshed = self.wait_for_element(by, value, timeout)
+            if refreshed:
+                self.click_element_using_js(refreshed)
+            else:
+                raise
+
     def click_page_element_with_retry(self, element: WebElement, page_element: PageElement, timeout: int | None = None) -> None:
         """
         Try to click an element until it's neither overlapped nor refreshed by DOM change, or timeout expires.
@@ -181,24 +172,28 @@ class Browser(Chrome):
         :param timeout: timeout or None if the default timeout should be used
         :raises TimeoutException if timeout expired
         """
-        self.click_with_retry(element, page_element.by, page_element.selector, timeout)
+        self.click_element_with_retry(element, page_element.by, page_element.selector, timeout)
 
-    def find_and_click_element_with_js(self, by: str, value: str) -> None:
+    def click_page_element_with_retry_using_js(self, element: WebElement, page_element: PageElement,
+                                               timeout: int | None = None) -> None:
         """
-        Finds and force click an element, ignoring any elements that may overlap it
+        Force click an element, ignoring any elements that may overlap it.
+        If :param by and :param value are provided, the element will be searched for again if StaleElementReferenceException
+        occurs during the click.
 
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
+        :param element: WebElement to click
+        :param page_element: element locator
+        :param timeout: timeout or None if the default timeout should be used
         """
-        self.click_element_with_js(self.find_element(by, value))
+        self.click_element_with_retry_using_js(element, page_element.by, page_element.selector, timeout)
 
-    def find_and_click_page_element_with_js(self, page_element: PageElement) -> None:
+    def find_and_click_page_element_using_js(self, page_element: PageElement) -> None:
         """
         Finds and force click an element, ignoring any elements that may overlap it
 
         :param page_element: locator
         """
-        self.click_element_with_js(self.find_element(page_element.by, page_element.selector))
+        self.click_element_using_js(self.find_element(page_element.by, page_element.selector))
 
     def find_page_element(self, page_element: PageElement) -> WebElement:
         """
@@ -270,18 +265,6 @@ class Browser(Chrome):
         except Exception as e:
             print(f'Error navigating to "{url}": {e}')
 
-    def open_dropdown_menu(self, by: str, value: str) -> None:
-        """
-        Opens the provided dropdown menu
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
-        """
-        element = self.wait_for_element(by, value)
-        if element is not None:
-            ActionChains(self).move_to_element(element).perform()
-        else:
-            raise TimeoutException(f'Timeout expired waiting for element ("{by}", "{value}") to appear!')
-
     def safe_click(self, by: str, value: str, timeout: int | None = None, ignore_exception: bool = False) -> None:
         """
         Wait until the provided WebElement becomes clickable, then click it and save its screenshot if the click fails
@@ -330,15 +313,6 @@ class Browser(Chrome):
             if not ignore_exception:
                 raise
 
-    def wait_for_condition(self, condition: Callable[..., bool], timeout: int | None = None) -> None:
-        """
-        Wait until the condition specified is True or timeout expires
-        :param condition: condition to be met
-        :param timeout: timeout or None if the default timeout should be used
-        """
-        timeout = timeout or self._default_timeout
-        WebDriverWait(self, timeout).until(condition)
-
     def wait_for_element(self, by: str, value: str, timeout: int | None = None) -> WebElement | None:
         """
         Wait until all matching elements become visible, or timeout expires, then return the first one
@@ -371,18 +345,6 @@ class Browser(Chrome):
             pass
         return items
 
-    def wait_for_element_appear(self, by: str, value: str, timeout: int | None = None) -> WebElement:
-        """
-        Wait until a web element appears or timeout expires
-
-        :param by: locator strategy as provided in selenium.webdriver.common.by.By class
-        :param value: locator value
-        :param timeout: timeout or None if the default timeout should be used
-        """
-        return WebDriverWait(self, timeout or self._default_timeout).until(
-            EC.presence_of_element_located((by, value))
-        )
-
     def wait_for_element_clickable(self, by: str, value: str, timeout: int | None = None) -> WebElement:
         """
         Wait until a web element becomes clickable or the timeout expires
@@ -411,29 +373,6 @@ class Browser(Chrome):
         )
 
         return clickable
-
-    def wait_for_page_element_clickable(self, page_element: PageElement, timeout: int | None = None) -> WebElement:
-        """
-        Wait until a web element becomes clickable or the timeout expires
-
-        :param page_element: element locator
-        :param timeout: timeout or None if the default timeout should be used
-
-        :return Clickable WebElement reference
-        """
-        return self.wait_for_element_clickable(page_element.by, page_element.selector, timeout)
-
-    def wait_for_page_element_disappear(self, page_element: PageElement, timeout: int | None = None) -> None:
-        """
-        Wait until a web element disappears or timeout expires
-
-        :param page_element: element locator
-        :param timeout: timeout or None if the default timeout should be used
-        """
-        WebDriverWait(self, timeout or self._default_timeout).until(
-            EC.invisibility_of_element_located((page_element.by, page_element.selector))
-        )
-        return None
 
     def wait_for_network_inactive(self, timeout: int | None = None) -> None:
         """
@@ -480,6 +419,29 @@ class Browser(Chrome):
         :return: WebElement found or None if timeout expired
         """
         return self.wait_for_element(page_element.by, page_element.selector, timeout)
+
+    def wait_for_page_element_clickable(self, page_element: PageElement, timeout: int | None = None) -> WebElement:
+        """
+        Wait until a web element becomes clickable or the timeout expires
+
+        :param page_element: element locator
+        :param timeout: timeout or None if the default timeout should be used
+
+        :return Clickable WebElement reference
+        """
+        return self.wait_for_element_clickable(page_element.by, page_element.selector, timeout)
+
+    def wait_for_page_element_disappear(self, page_element: PageElement, timeout: int | None = None) -> None:
+        """
+        Wait until a web element disappears or timeout expires
+
+        :param page_element: element locator
+        :param timeout: timeout or None if the default timeout should be used
+        """
+        WebDriverWait(self, timeout or self._default_timeout).until(
+            EC.invisibility_of_element_located((page_element.by, page_element.selector))
+        )
+        return None
 
     def wait_for_page_elements(self, page_elements: PageElement, timeout: int | None = None) -> list[WebElement] | None:
         """
@@ -543,39 +505,6 @@ class Browser(Chrome):
             log.debug(f'Page load state == {state}')
             sleep(0.1)
 
-    def wait_for_page_stable(self, stable_time: int, timeout: int | None = None) -> bool:
-        """Wait until no DOM changes occur for 'stable_time' seconds
-        :param stable_time: requested page stability time in seconds
-        :param timeout: timeout or None if the default timeout should be used
-        :return: True if the page became stable within timeout provided, False otherwise
-        """
-        timeout = timeout or self._default_timeout
-
-        last_dom_hash = None
-        stable_start = None
-
-        start_time = time()
-        while time() - start_time < timeout:
-            # Get the current DOM state hash
-            current_dom_hash = self._execute_javascript("""
-                return document.documentElement.outerHTML.length + 
-                       document.readyState + 
-                       (typeof jQuery !== 'undefined' ? jQuery.active : 0);
-            """)
-
-            if current_dom_hash == last_dom_hash:
-                if stable_start is None:
-                    stable_start = time()
-                elif time() - stable_start >= stable_time:
-                    return True  # Page has been stable
-            else:
-                stable_start = None  # Reset stability timer
-
-            last_dom_hash = current_dom_hash
-            sleep(0.1)
-
-        return False  # Timeout reached
-
     def _execute_javascript(self, script: str, *args: Any) -> Any:
         """
         Wrapper for WebDriver.execute_script to satisfy 'mypy --scrict'
@@ -606,18 +535,6 @@ class Browser(Chrome):
         except Exception as ex:
             print(f'Exception occured while gathering detailed information for element {element}. '
                   f'Details:\n{ex.__class__.__name__}:{str(ex)}')
-
-    @staticmethod
-    def find_page_element_in(where: WebElement, page_element: PageElement) -> WebElement:
-        """
-        Finds page element in provided element
-
-        :param where: WebElement to search in
-        :param page_element: element to look for
-
-        :return: WebElement found
-        """
-        return where.find_element(page_element.by, page_element.selector)
 
     @staticmethod
     def safe_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
@@ -667,4 +584,3 @@ class Browser(Chrome):
             return False
 
         return _check
-
