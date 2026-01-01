@@ -1,3 +1,6 @@
+"""
+    Web page element locator module
+"""
 from dataclasses import dataclass
 
 @dataclass
@@ -6,5 +9,6 @@ class Locator:
     type: str
     value: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """String representation of the locator."""
         return f'({self.type}) {self.value}'

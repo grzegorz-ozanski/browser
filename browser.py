@@ -117,7 +117,8 @@ class Browser(Chrome):
 
     def click_page_element(self, locator: Locator,
                            timeout: int | None = None) ->None:
-        """Click page element
+        """
+        Click an element in the page
         :param locator: element locator
         :param timeout: timeout or None if the default timeout should be used
 

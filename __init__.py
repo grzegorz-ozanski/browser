@@ -1,7 +1,7 @@
 """
     Browser module
 """
-from .browser import Browser
+from .browser import Browser, PageElement
 from .browseroptions import BrowserOptions
 from .log import setup_logging
 from .locator import Locator
@@ -12,5 +12,6 @@ __all__ = [
     'BrowserOptions',
     'WebLogger',
     'Locator',
+    'PageElement',
     'setup_logging'
 ]
