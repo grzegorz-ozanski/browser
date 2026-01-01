@@ -37,7 +37,7 @@ class PageElement(WebElement):
 
         :return: WebElement found
         """
-        return self.find_element(locator.type, locator.value)
+        return PageElement(self.find_element(locator.type, locator.value))
 
     def find_page_elements(self, locator: Locator) -> list['PageElement']:
         """
