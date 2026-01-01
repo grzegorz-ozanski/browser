@@ -65,6 +65,7 @@ class Browser(Chrome):
         self._error_log_dir = options.error_log_dir
         self.user_data_dir_delete_retries = 3
         self.user_data_dir_delete_retries_interval = 5
+        self.dirty = False
 
         log.debug('Creating new Chrome instance with parameters: "%s"', options)
 
@@ -247,6 +248,7 @@ class Browser(Chrome):
         :param url: URL to open
         """
         super().get(url)
+        self.dirty = True
         if self.fix_window_size:
             window_size = self.get_window_size()
             self.execute_cdp_cmd('Emulation.setDeviceMetricsOverride', {
