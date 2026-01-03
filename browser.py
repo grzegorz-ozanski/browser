@@ -59,12 +59,7 @@ class Browser(Chrome):
 
         :param options: Browser options
         """
-        self.save_trace_logs = options.save_trace_logs
-        self._default_timeout = options.timeout
-        self.user_data_dir = options.user_data_dir
-        self._error_log_dir = options.error_log_dir
-        self.user_data_dir_delete_retries = 3
-        self.user_data_dir_delete_retries_interval = 5
+        self.options = options
         self.dirty = False
 
         log.debug('Creating new Chrome instance with parameters: "%s"', options)
@@ -91,16 +86,18 @@ class Browser(Chrome):
 
     def __del__(self) -> None:
         """
-            Delete user profile if exists
+            Delete user profile if exists and profile is not persistent
         """
-        if self.user_data_dir and self.user_data_dir.exists():
-            for i in range(self.user_data_dir_delete_retries):
+        if (self.options.profile.dir
+                and self.options.profile.dir.exists()
+                and not self.options.profile.persistent):
+            for i in range(self.options.profile.delete_retries):
                 try:
-                    shutil.rmtree(self.user_data_dir)
+                    shutil.rmtree(self.options.profile.dir)
                     break
                 except PermissionError:
                     try:
-                        sleep(self.user_data_dir_delete_retries_interval * 2**i)
+                        sleep(self.options.profile.delete_retries_interval * 2 ** i)
                     except OSError:
                         pass
 
@@ -109,11 +106,11 @@ class Browser(Chrome):
         """
         Directory for storing element error logs
         """
-        return self._error_log_dir
+        return self.options.error_log_dir
 
     @error_log_dir.setter
     def error_log_dir(self, value: str) -> None:
-        self._error_log_dir = value
+        self.options.error_log_dir = value
 
     def click_page_element(self, locator: Locator,
                            timeout: int | None = None) ->None:
@@ -150,7 +147,7 @@ class Browser(Chrome):
         """
         start = monotonic()
         exception_occurred = True
-        while monotonic() - start < (timeout or self._default_timeout) and exception_occurred:
+        while monotonic() - start < self._timeout(timeout) and exception_occurred:
             log.debug('Pre element.click')
             try:
                 exception_occurred = False
@@ -371,7 +368,7 @@ class Browser(Chrome):
         :return: list of found WebElements or None if timeout expired
         """
         items = None
-        timeout = timeout or self._default_timeout
+        timeout = self._timeout(timeout)
         try:
             items = WebDriverWait(self, timeout).until(
                 EC.visibility_of_all_elements_located((by, value)))
@@ -390,7 +387,7 @@ class Browser(Chrome):
 
         :return Clickable WebElement reference
         """
-        timeout = timeout or self._default_timeout
+        timeout = self._timeout(timeout)
 
         # 1. Wait for visibility
         WebDriverWait(self, timeout).until(
@@ -417,7 +414,7 @@ class Browser(Chrome):
         :return: anything returned by browser.execute_stript, or False if timeout occured
         """
         # Additional check for network activity
-        timeout = timeout or self._default_timeout
+        timeout = self._timeout(timeout)
         network_idle_script = '''
             return new Promise(resolve => {
                 // Use Performance API to check if resources are still loading
@@ -478,7 +475,7 @@ class Browser(Chrome):
         :param locator: element locator
         :param timeout: timeout or None if the default timeout should be used
         """
-        WebDriverWait(self, timeout or self._default_timeout).until(
+        WebDriverWait(self, self._timeout(timeout)).until(
             EC.invisibility_of_element_located((locator.type, locator.value))
         )
         return None
@@ -504,7 +501,7 @@ class Browser(Chrome):
         :return: anything returned by browser.execute_stript, or False if timeout occured
         """
 
-        timeout = timeout or self._default_timeout
+        timeout = self._timeout(timeout)
         script = '''
             return new Promise(resolve => {
                 const observer = new MutationObserver(mutations => {
@@ -556,6 +553,15 @@ class Browser(Chrome):
         """
         # Ignore 'mypy --strict' error on a library function
         return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
+
+    def _timeout(self, timeout: int | None = None):
+        """
+        Returns timeout value to be used
+
+        :param timeout: timeout parameter passed to the function
+        :return: timeout parameter value if not None, default timeout (options.timeout) otherwise
+        """
+        return timeout or self.options.timeout
 
     @staticmethod
     def dump_element(element: WebElement | None) -> None:

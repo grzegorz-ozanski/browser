@@ -2,10 +2,21 @@
     Browser options
 """
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from .chromedownloader import ChromeDownloader
 from .platforminfo import PlatformInfo
+
+@dataclass
+class Profile:
+    """
+    Stores information about user profile directory
+    """
+    dir: Path
+    persistent: bool
+    delete_retries: int = 3
+    delete_retries_interval: int = 5
 
 
 
@@ -14,7 +25,13 @@ class BrowserOptions:
     Browser options class
     """
 
-    def __init__(self, root_path: str, headless: bool, save_trace_logs: bool, chrome_path: str, timeout: int = 10) -> None:
+    def __init__(self,
+                 root_path: str,
+                 headless: bool,
+                 save_trace_logs: bool,
+                 chrome_path: str,
+                 persistent_profile: bool = False,
+                 timeout: int = 10) -> None:
         """
         Class construstor
         :param root_path: Chromediver root path
@@ -25,7 +42,6 @@ class BrowserOptions:
         """
         self.chromedriver_location = ''
         self.chrome_location = ''
-        self.user_data_dir = None
         self.driver_options = ['disable-blink-features=AutomationControlled','window-size=1920,1200', 'log-level=3', 'disable-dev-shm-usage']
         self.save_trace_logs = save_trace_logs
         if headless:
@@ -37,8 +53,8 @@ class BrowserOptions:
         # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
         self.driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
         # Another remedy for reCatcha v3
-        self.user_data_dir = Path(tempfile.gettempdir(), 'myprofile')
-        self.driver_options += [f'user-data-dir={self.user_data_dir}']
+        self.profile = Profile(Path(tempfile.gettempdir(), 'myprofile'), persistent_profile)
+        self.driver_options += [f'user-data-dir={self.profile.dir}']
         self.error_log_dir = 'error'
 
     def __repr__(self) -> str:

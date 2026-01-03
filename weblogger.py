@@ -97,7 +97,7 @@ class WebLogger:
         Raises:
             None
         """
-        if self.browser.save_trace_logs:
+        if self.browser.options.save_trace_logs:
             filename = self._get_filename('trace', suffix)
             self._write_logs(filename)
 
