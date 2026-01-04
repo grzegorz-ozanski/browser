@@ -7,16 +7,7 @@ from pathlib import Path
 
 from .chromedownloader import ChromeDownloader
 from .platforminfo import PlatformInfo
-
-@dataclass
-class Profile:
-    """
-    Stores information about user profile directory
-    """
-    dir: Path
-    persistent: bool
-    delete_retries: int = 3
-    delete_retries_interval: int = 5
+from .profile import Profile
 
 
 
