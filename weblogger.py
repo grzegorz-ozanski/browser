@@ -123,7 +123,11 @@ class WebLogger:
                 last_number = max([int(d.split('.')[1]) if '.' in d else 0
                                    for d in os.listdir()
                                    if d.startswith(f'{subdir}') and os.path.isdir(d)], default=0)
-                os.rename(subdir, f'{subdir}.{last_number + 1:>03}')
+                dst = f'{subdir}.{last_number + 1:>03}'
+                try:
+                    os.rename(subdir, dst)
+                except PermissionError as ex:
+                    raise RuntimeError(f'Cannot rename log file "{subdir}" to "{dst}"') from ex
         subdir = self._get_dir(subdir)
         os.makedirs(subdir, exist_ok=True)
         return os.path.join(subdir, filename)
