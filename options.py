@@ -2,16 +2,16 @@
     Browser options
 """
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 
 from .chromedownloader import ChromeDownloader
 from .platforminfo import PlatformInfo
 from .profile import Profile
 
-
+PROFILE_NAME = 'myprofile'
 
 class BrowserOptions:
+    SEP = ', '
     """
     Browser options class
     """
@@ -22,6 +22,7 @@ class BrowserOptions:
                  save_trace_logs: bool,
                  chrome_path: str,
                  persistent_profile: bool = False,
+                 profile_name: str = PROFILE_NAME,
                  timeout: int = 10) -> None:
         """
         Class construstor
@@ -33,26 +34,30 @@ class BrowserOptions:
         """
         self.chromedriver_location = ''
         self.chrome_location = ''
-        self.driver_options = ['disable-blink-features=AutomationControlled','window-size=1920,1200', 'log-level=3', 'disable-dev-shm-usage']
+        self._driver_options = ['disable-blink-features=AutomationControlled', 'window-size=1920,1200', 'log-level=3', 'disable-dev-shm-usage']
         self.save_trace_logs = save_trace_logs
         if headless:
-            self.driver_options.append('headless')
+            self._driver_options.append('headless')
         self.timeout = timeout
         self._configure_chromedriver_location(root_path, chrome_path)
-        self.driver_options.append('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+        self._driver_options.append('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                    f'(KHTML, like Gecko) Chrome/138.0.7204.49 Safari/537.36') # for multimedia service login error in headless mode
         # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
-        self.driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
+        self._driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
         # Another remedy for reCatcha v3
-        self.profile = Profile(Path(tempfile.gettempdir(), 'myprofile'), persistent_profile)
-        self.driver_options += [f'user-data-dir={self.profile.dir}']
+        self.profile = Profile(profile_name, tempfile.gettempdir(), persistent_profile)
         self.error_log_dir = 'error'
+
+    @property
+    def driver_options(self) -> list[str]:
+        options = self._driver_options
+        return options + [f'user-data-dir={self.profile.path}']
 
     def __repr__(self) -> str:
         """
             Return string representation of the object.
         """
-        return ', '.join([f'{name}={value}' for name, value in self.__dict__.items()])
+        return self.SEP.join([f'{name}={value}' for name, value in self.__dict__.items()])
 
     def _configure_chromedriver_location(self, root_path: str, chrome_path: str) -> None:
         """
