@@ -11,10 +11,10 @@ from .profile import Profile
 PROFILE_NAME = 'myprofile'
 
 class BrowserOptions:
-    SEP = ', '
     """
     Browser options class
     """
+    SEP = ', '
 
     def __init__(self,
                  root_path: str,
@@ -50,6 +50,10 @@ class BrowserOptions:
 
     @property
     def driver_options(self) -> list[str]:
+        """
+        Returns driver options list
+        :return: driver options list
+        """
         options = self._driver_options
         return options + [f'user-data-dir={self.profile.path}']
 
@@ -95,4 +99,8 @@ class BrowserOptions:
             raise NotImplementedError(f'"{platform_info.system}" is not supported.')
 
     def as_log_str(self) -> str:
+        """
+        Return string representation of the object applicable for logging (each field in a new line).
+        :return:
+        """
         return '\n' + str(self).replace(self.SEP,f'{self.SEP}\n')

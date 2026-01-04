@@ -1,3 +1,6 @@
+"""
+    User profile module
+"""
 import shutil
 from pathlib import Path
 from time import sleep
@@ -25,6 +28,10 @@ class Profile:
 
     @property
     def name(self) -> str:
+        """
+        Return profile name
+        :return: The name of the profile
+        """
         return self._name
 
     @name.setter
@@ -32,7 +39,10 @@ class Profile:
         self._name = value
         self.path = Path(self._base_dir, value)
 
-    def delete(self) -> None:
+    def delete_if_volatile(self) -> None:
+        """
+        Delete volatile profile directory
+        """
         log.debug('Deleting profile directory: "%s"', self.path)
         if self.path and self.path.exists() and not self.persistent:
             for i in range(self.delete_retries):
@@ -50,6 +60,11 @@ class Profile:
 
     @classmethod
     def create_from(cls, other: 'Profile') -> 'Profile':
+        """
+        Copy constructor
+        :param other: template object
+        :return: new profile object created from template provided
+        """
         return cls(
             other.name,
             other._base_dir,
