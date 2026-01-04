@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from .locator import Locator
-from .browseroptions import BrowserOptions
+from .options import BrowserOptions
 from .log import setup_logging
 
 log = setup_logging(__name__)
@@ -62,7 +62,7 @@ class Browser(Chrome):
         self.options = options
         self.dirty = False
 
-        log.debug('Creating new Chrome instance with parameters: "%s"', options)
+        log.debug('Creating new Chrome instance with parameters: "%s"', options.as_log_str())
 
         chrome_options = Options()
 

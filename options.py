@@ -97,3 +97,6 @@ class BrowserOptions:
                     self.chrome_location += '.exe'
         else:
             raise NotImplementedError(f'"{platform_info.system}" is not supported.')
+
+    def as_log_str(self) -> str:
+        return '\n' + str(self).replace(self.SEP,f'{self.SEP}\n')
