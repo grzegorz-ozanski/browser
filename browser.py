@@ -3,7 +3,6 @@
 """
 import concurrent.futures
 import os
-import shutil
 from datetime import datetime
 from time import sleep, monotonic
 from typing import Any, Callable, cast
@@ -83,23 +82,6 @@ class Browser(Chrome):
         # for headless mode, set window size at frist page open
         self.fix_window_size = any('headless' in arg for arg in chrome_options.arguments)
         self.set_page_load_timeout(options.timeout)
-
-    def __del__(self) -> None:
-        """
-            Delete user profile if exists and profile is not persistent
-        """
-        if (self.options.profile.dir
-                and self.options.profile.dir.exists()
-                and not self.options.profile.persistent):
-            for i in range(self.options.profile.delete_retries):
-                try:
-                    shutil.rmtree(self.options.profile.dir)
-                    break
-                except PermissionError:
-                    try:
-                        sleep(self.options.profile.delete_retries_interval * 2 ** i)
-                    except OSError:
-                        pass
 
     @property
     def error_log_dir(self) -> str:
