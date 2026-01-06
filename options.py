@@ -36,7 +36,8 @@ class BrowserOptions:
         self.chrome_location = ''
         self._driver_options = ['disable-blink-features=AutomationControlled', 'window-size=1920,1200', 'log-level=3', 'disable-dev-shm-usage']
         self.save_trace_logs = save_trace_logs
-        if headless:
+        self.headless = headless
+        if self.headless:
             self._driver_options.append('headless')
         self.timeout = timeout
         self._configure_chromedriver_location(root_path, chrome_path)
