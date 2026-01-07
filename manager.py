@@ -32,7 +32,7 @@ class BrowserManager:
             # 1. use_volatile_profile=False,
             # 2. we already have a browser instance
             # 3. the browser instance uses persistent profile
-            log.debug('Returning existing browser instance')
+            log.debug('Using existing browser instance')
             return self.browser
 
         if self.browser:

@@ -61,7 +61,7 @@ class Browser(Chrome):
         self.options = options
         self.dirty = False
 
-        log.debug('Creating new Chrome instance with parameters: "%s"', options.as_log_str())
+        log.debug('Creating new Chrome instance with parameters: "%s"', options)
 
         chrome_options = Options()
 
