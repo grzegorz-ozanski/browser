@@ -11,4 +11,4 @@ class Locator:
 
     def __repr__(self) -> str:
         """String representation of the locator."""
-        return f'({self.type}) {self.value}'
+        return f'[({self.type}) {self.value}]'
