@@ -575,30 +575,6 @@ class Browser(Chrome):
                   f'Details:\n{ex.__class__.__name__}:{str(ex)}')
 
     @staticmethod
-    def safe_elements_list(unsafe_list: list[WebElement] | None) -> list[WebElement]:
-        """
-        Safely casts the list of WebElements which may also be None onto an actual list
-        :param unsafe_list: input list
-        :return: converted list
-        :raise RuntimeError if :param unsafe_list is None
-        """
-        if unsafe_list is None:
-            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
-        return unsafe_list
-
-    @staticmethod
-    def safe_page_elements_list(unsafe_list: list[PageElement] | None) -> list[PageElement]:
-        """
-        Safely casts the list of WebElements which may also be None onto an actual list
-        :param unsafe_list: input list
-        :return: converted list
-        :raise RuntimeError if :param unsafe_list is None
-        """
-        if unsafe_list is None:
-            raise RuntimeError(f'Argument "unsafe_list" cannot be None!')
-        return [PageElement(element) for element in unsafe_list]
-
-    @staticmethod
     def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
         """
         Check if other elements do not overlap the provided one (i.e., the element is available for interaction)
