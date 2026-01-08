@@ -544,7 +544,7 @@ class Browser(Chrome):
         # Ignore 'mypy --strict' error on a library function
         return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
 
-    def _timeout(self, timeout: int | None = None):
+    def _timeout(self, timeout: int | None = None) -> int:
         """
         Returns timeout value to be used
 
