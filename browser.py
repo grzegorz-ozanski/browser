@@ -587,7 +587,7 @@ class Browser(Chrome):
         return unsafe_list
 
     @staticmethod
-    def safe_page_elements_list(unsafe_list: list[WebElement] | None) -> list[PageElement]:
+    def safe_page_elements_list(unsafe_list: list[PageElement] | None) -> list[PageElement]:
         """
         Safely casts the list of WebElements which may also be None onto an actual list
         :param unsafe_list: input list
