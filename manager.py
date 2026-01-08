@@ -15,8 +15,8 @@ class BrowserManager:
     def __init__(self, options: BrowserOptions, factory: type[Browser]):
         self.options = options
         self.persistent_profile  = options.profile
-        self.volatile_profile = None
-        self.browser = None
+        self.volatile_profile: Profile | None = None
+        self.browser: Browser | None = None
         self.factory= factory
 
     def get(self, use_volatile_profile: bool) -> Browser:
