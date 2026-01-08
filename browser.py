@@ -94,6 +94,14 @@ class Browser(Chrome):
     def error_log_dir(self, value: str) -> None:
         self.options.error_log_dir = value
 
+    @property
+    def timezone(self) -> str:
+        """
+        Get browser timezone
+        :return: Timezone string
+        """
+        return str(self._execute_javascript("return Intl.DateTimeFormat().resolvedOptions().timeZone"))
+
     def click_page_element(self, locator: Locator,
                            timeout: int | None = None) ->None:
         """

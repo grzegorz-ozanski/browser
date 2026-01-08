@@ -56,5 +56,6 @@ class BrowserManager:
             log.debug('Creating new persistent profile browser instance')
             self.options.profile = self.persistent_profile
         self.browser = self.factory(self.options)
+        log.debug('Browser timezone is: %s ', self.browser.timezone )
         return self.browser
 
