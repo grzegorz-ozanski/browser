@@ -22,6 +22,7 @@ class BrowserOptions:
                  save_trace_logs: bool,
                  chrome_path: str,
                  persistent_profile: bool = False,
+                 persistent_profile_dir: str = '',
                  profile_name: str = PROFILE_NAME,
                  timeout: int = 10) -> None:
         """
@@ -46,7 +47,7 @@ class BrowserOptions:
         # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
         self._driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
         # Another remedy for reCatcha v3
-        self.profile = Profile(profile_name, tempfile.gettempdir(), persistent_profile)
+        self.profile = Profile(profile_name, persistent_profile_dir or tempfile.gettempdir(), persistent_profile)
         self.error_log_dir = 'error'
 
     @property
