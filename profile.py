@@ -39,7 +39,7 @@ class Profile:
         self._name = value
         self.path = Path(self._base_dir, value)
 
-    def delete_if_volatile(self) -> None:
+    def delete_not_persistent(self) -> None:
         """
         Delete volatile profile directory
         """
