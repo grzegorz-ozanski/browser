@@ -445,7 +445,7 @@ class Browser(Chrome):
         return None if element is None else PageElement(element)
 
     def wait_for_page_element_clickable(self, locator: Locator,
-                                        timeout: int | None = None) -> PageElement:
+                                        timeout: int | None = None) -> PageElement | None:
         """
         Wait until a web element becomes clickable or the timeout expires
 
