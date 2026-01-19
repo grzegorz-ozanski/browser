@@ -17,7 +17,7 @@ class BrowserManager:
         self.persistent_profile  = options.profile
         self.volatile_profile: Profile | None = None
         self.browser: Browser | None = None
-        self.factory= factory
+        self.factory = factory
 
     def get(self, use_volatile_profile: bool) -> Browser:
         """
