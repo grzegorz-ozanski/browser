@@ -5,25 +5,13 @@ import inspect
 import logging
 import os
 from contextlib import contextmanager
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import cast, Any, Generator, TYPE_CHECKING
 
 from .logconfig import LOG_CONFIG
-
-
-@dataclass(frozen=True)
-class WebArtifact:
-    """
-    Web logger artifact.
-    """
-    base: Path  # without suffix
-    png: Path
-    html: Path
-    subdir: str  # "trace" / "error"
-    name: str  # service/provider name (your self.name)
-    suffix: str
+if TYPE_CHECKING:
+    from .browser import Browser
 
 
 class WebLogger(logging.Logger):
@@ -61,11 +49,11 @@ class WebLogger(logging.Logger):
     _ENCODING = 'utf-8'
     _INITIALIZED_LEVEL_DIRS: set[str] = set()  # which logging subdirs were rotated and/or initialized in this run
     _CALLSTACK_LEVEL: int | None = None
-    _BROWSER = None
+    _BROWSER: 'Browser | None' = None
 
     @classmethod
     @contextmanager
-    def browser(cls, browser: 'Browser'):
+    def browser(cls, browser: 'Browser') -> Generator[None, Any, None]:
         """
         Set browser context
         :param browser: Browser instance
@@ -90,7 +78,7 @@ class WebLogger(logging.Logger):
 
     # --- public API ---
 
-    def web_error(self) -> WebArtifact | None:
+    def web_error(self) ->  None:
         """
         Always capture into 'error' dir.
         :return: WebArtifact
@@ -99,7 +87,7 @@ class WebLogger(logging.Logger):
             raise RuntimeError('Cannot create web logs: browser is not set.')
         return self._capture(self.ERROR)
 
-    def web_trace(self, reason: str) -> WebArtifact | None:
+    def web_trace(self, reason: str) -> None:
         """
         Capture into 'trace' dir only if enabled.
         :param reason: Logging event reason
@@ -111,7 +99,7 @@ class WebLogger(logging.Logger):
             return None
         return self._capture(self.TRACE, reason=reason)
 
-    def _capture(self, level: str, reason: str = "") -> WebArtifact | None:
+    def _capture(self, level: str, reason: str = "") -> None:
         """
         Non-fatal capture: returns None on any FS/browser exception.
         Useful if you don't want tracing to fail tests.
@@ -128,17 +116,10 @@ class WebLogger(logging.Logger):
             html = Path(f'{full_path}{self._HTML}')
 
             # Actual writes:
-            WebLogger._BROWSER.save_screenshot(str(png))
-            html.write_text(WebLogger._BROWSER.page_source, encoding=self._ENCODING)
+            if WebLogger._BROWSER:
+                WebLogger._BROWSER.save_screenshot(str(png))
+                html.write_text(WebLogger._BROWSER.page_source, encoding=self._ENCODING)
 
-            return WebArtifact(
-                base=full_path,
-                png=png,
-                html=html,
-                subdir=level,
-                name=self.name,
-                suffix=reason,
-            )
         except OSError:
             log.exception('Cannot create log entry')
         return None
