@@ -46,13 +46,12 @@ class BrowserManager:
 
         if use_volatile_profile:
             log.debug('Creating new volatile profile browser instance')
+            # Force creation of fresh volatile profile directory
+            self.volatile_profile.delete_not_persistent()
             if not self.volatile_profile:
                 self.volatile_profile = Profile.create_from(self.persistent_profile)
                 self.volatile_profile.name = f'{PROFILE_NAME}.volatile'
                 self.volatile_profile.persistent = False
-            else:
-                # Force creation of fresh volatile profile directory
-                self.volatile_profile.delete_not_persistent()
             self.options.profile = self.volatile_profile
         else:
             log.debug('Creating new persistent profile browser instance')
