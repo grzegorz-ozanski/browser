@@ -1,6 +1,7 @@
 """
     Browser manager module
 """
+from os import getenv
 from .browser import Browser
 from .log import setup_logging
 from .options import BrowserOptions, PROFILE_NAME
@@ -18,6 +19,7 @@ class BrowserManager:
         self.volatile_profile: Profile | None = None
         self.browser: Browser | None = None
         self.factory = factory
+        self.debug_profile = getenv('BROWSER_DEBUG_PROFILE', '0') == '1'
 
     def get(self, use_volatile_profile: bool) -> Browser:
         """
@@ -55,6 +57,9 @@ class BrowserManager:
         else:
             log.debug('Creating new persistent profile browser instance')
             self.options.profile = self.persistent_profile
+        log.debug('Creating browser with profile in "%s"', self.options.profile.path)
+        if self.debug_profile:
+            input('Press ENTER to continue...')
         self.browser = self.factory(self.options)
         log.debug('Browser timezone is: %s ', self.browser.timezone )
         return self.browser
