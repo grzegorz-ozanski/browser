@@ -108,6 +108,8 @@ class WebLogger(logging.Logger):
         :return: WebArtifact or None exception occured during logging
         """
         try:
+            if WebLogger._BROWSER is None:
+                raise RuntimeError('Cannot create web logs: browser is not set.')
             target_dir = self._get_logger_dir(level, self.name)
             filename = self._next_filename(level=level, reason=reason)
 
@@ -116,9 +118,8 @@ class WebLogger(logging.Logger):
             html = Path(f'{full_path}{self._HTML}')
 
             # Actual writes:
-            if WebLogger._BROWSER:
-                WebLogger._BROWSER.save_screenshot(str(png))
-                html.write_text(WebLogger._BROWSER.page_source, encoding=self._ENCODING)
+            WebLogger._BROWSER.save_screenshot(str(png))
+            html.write_text(WebLogger._BROWSER.page_source, encoding=self._ENCODING)
 
         except OSError:
             log.exception('Cannot create log entry')
