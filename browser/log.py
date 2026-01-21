@@ -48,22 +48,8 @@ class WebLogger(logging.Logger):
     _HTML = '.html'
     _ENCODING = 'utf-8'
     _INITIALIZED_LEVEL_DIRS: set[str] = set()  # which logging subdirs were rotated and/or initialized in this run
-    _CALLSTACK_LEVEL: int | None = None
     _BROWSER: 'Browser | None' = None
-
-    @classmethod
-    @contextmanager
-    def browser(cls, browser: 'Browser') -> Generator[None, Any, None]:
-        """
-        Set browser context
-        :param browser: Browser instance
-        """
-        try:
-            cls._BROWSER = browser
-            yield
-        finally:
-            cls._BROWSER = None
-
+    _GROUP_NAME: str | None = None
 
     def __init__(self, name: str, base_dir: str | Path = "."):
         """
@@ -71,10 +57,11 @@ class WebLogger(logging.Logger):
         :param name: logger name
         :param base_dir: log base directory
         """
-        super().__init__(name)
+        self._callstack_level: int | None = None
         self._base_dir = Path(base_dir)
 
         self._counters: dict[str, int] = {}  # per logging level counter (trace/error)
+        super().__init__(name)
 
     # --- public API ---
 
@@ -99,6 +86,38 @@ class WebLogger(logging.Logger):
             return None
         return self._capture(self.TRACE, reason=reason)
 
+    @classmethod
+    @contextmanager
+    def browser(cls, browser: 'Browser') -> Generator[None, Any, None]:
+        """
+        Set browser context
+        :param browser: Browser instance
+        :return Generator object
+        """
+        try:
+            cls._BROWSER = browser
+            yield
+        finally:
+            cls._BROWSER = None
+
+    @classmethod
+    @contextmanager
+    def group(cls, name: str) -> Generator[None, Any, None]:
+        """
+        Enters and exists web logger group
+        :param name: group name
+        :return Generator object
+        """
+        try:
+            cls._GROUP_NAME = name
+            yield
+        finally:
+            cls._GROUP_NAME = None
+
+    # --- internals ---
+    def _name(self) -> str:
+        return self._GROUP_NAME or self.name
+
     def _capture(self, level: str, reason: str = "") -> None:
         """
         Non-fatal capture: returns None on any FS/browser exception.
@@ -110,7 +129,7 @@ class WebLogger(logging.Logger):
         try:
             if WebLogger._BROWSER is None:
                 raise RuntimeError('Cannot create web logs: browser is not set.')
-            target_dir = self._get_logger_dir(level, self.name)
+            target_dir = self._get_logger_dir(level, self._name())
             filename = self._next_filename(level=level, reason=reason)
 
             full_path = target_dir / filename
@@ -126,20 +145,19 @@ class WebLogger(logging.Logger):
         return None
 
 
-    # --- internals ---
     def _get_first_external_frame(self) -> inspect.FrameInfo:
         """
             Get first external call frame (e.g. outside WebLogger object)
         """
         stack = inspect.stack()
-        if self._CALLSTACK_LEVEL is None:
+        if self._callstack_level is None:
             level = 0
             f_locals = stack[level].frame.f_locals
             while f_locals.get('self') == self:
                 level += 1
                 f_locals = stack[level].frame.f_locals
-            self._CALLSTACK_LEVEL = level
-        return stack[self._CALLSTACK_LEVEL]
+            self._callstack_level = level
+        return stack[self._callstack_level]
 
     def _get_caller(self) -> str:
         """
@@ -188,6 +206,8 @@ class WebLogger(logging.Logger):
 
         # Create active directory (per-name for trace, shared for error)
         logger_dir = self._resolve_dir(level, logger_name)
+        f = self._get_first_external_frame()
+        n = self._get_caller()
         logger_dir.mkdir(parents=True, exist_ok=True)
 
         self._INITIALIZED_LEVEL_DIRS.add(level)
