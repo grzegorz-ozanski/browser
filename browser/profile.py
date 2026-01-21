@@ -43,8 +43,11 @@ class Profile:
         """
         Delete volatile profile directory
         """
-        log.debug('Deleting profile directory: "%s"', self.path)
-        if self.path and self.path.exists() and not self.persistent:
+        if self.persistent:
+            log.debug('Refusing to delete persistent profile directory "%s"', self.path)
+            return
+        if self.path and self.path.exists():
+            log.debug('Deleting volatile profile directory: "%s"', self.path)
             for i in range(self.delete_retries):
                 try:
                     shutil.rmtree(self.path)
