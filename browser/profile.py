@@ -53,13 +53,18 @@ class Profile:
                     shutil.rmtree(self.path)
                     return
                 except PermissionError:
+                    sleep_time = self.delete_retries_interval * 2 ** i
+                    log.warning('PermissionError occurred while deleting profile directory "%s" at %s attempt,'
+                                'sleeping %s seconds', self.path, i, sleep_time)
                     try:
                         sleep(self.delete_retries_interval * 2 ** i)
                     except OSError:
                         pass
             else:
-                log.error('Could not delete profile directory "%s" in %s retries',
-                          self.path, self.delete_retries)
+                message = (f'Could not delete volatile profile directory "self.path" in self.delete_retries retries.'
+                           'Fresh profile cannot be created, aborting')
+                log.error(message)
+                raise RuntimeError(message)
 
     @classmethod
     def create_from(cls, other: 'Profile') -> 'Profile':
