@@ -61,7 +61,7 @@ class Profile:
                     except OSError:
                         pass
             else:
-                message = (f'Could not delete volatile profile directory "self.path" in self.delete_retries retries.'
+                message = (f'Could not delete volatile profile directory "{self.path}" in {self.delete_retries} retries.'
                            'Fresh profile cannot be created, aborting')
                 log.error(message)
                 raise RuntimeError(message)
