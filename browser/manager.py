@@ -1,7 +1,10 @@
 """
     Browser manager module
 """
+from contextlib import contextmanager
 from os import getenv
+from typing import Any, Generator
+
 from .browser import Browser
 from .log import setup_logging
 from .options import BrowserOptions, PROFILE_NAME
@@ -21,7 +24,35 @@ class BrowserManager:
         self.factory = factory
         self.debug_profile = getenv('BROWSER_DEBUG_PROFILE', '0') == '1'
 
-    def get(self, use_volatile_profile: bool) -> Browser:
+    # noinspection PyBroadException
+    @contextmanager
+    def session(self, use_volatile_profile: bool) -> Generator[Browser, Any, None]:
+        """
+        Context manager for getting browser instance with either persistent profile or volatile user profile
+        :param use_volatile_profile: use volatile user profile
+
+        :return: Browser instance
+        """
+        browser = self._get(use_volatile_profile)
+        try:
+            yield browser
+        finally:
+            # Delete volatile profile
+            if use_volatile_profile:
+                log.debug("Ending volatile session -> quitting browser")
+                try:
+                    browser.quit()
+                except Exception:
+                    log.exception("browser.quit() failed")
+                self.browser = None
+                # We need nested ifs here as self.volatile_profile variable itself is persistent
+                if self.volatile_profile:
+                    try:
+                        self.volatile_profile.delete_not_persistent()
+                    except Exception:
+                        log.exception("volatile profile cleanup failed")
+
+    def _get(self, use_volatile_profile: bool) -> Browser:
         """
         Get browser instance with either persistent profile or volatile user profile
         :param use_volatile_profile: use volatile user profile
