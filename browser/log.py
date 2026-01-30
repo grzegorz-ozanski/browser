@@ -16,20 +16,6 @@ if TYPE_CHECKING:
 TRACE = 5
 logging.addLevelName(TRACE, "TRACE")
 
-def trace(self: logging.Logger, message: object, *args: object, **kwargs: object) -> None:
-    """
-    Log trace message
-    :param self: Logger object
-    :param message: message to log
-    :param args: arguments
-    :param kwargs: keyword arguments
-    """
-    if self.isEnabledFor(TRACE):
-        self._log(TRACE, message, args, **kwargs)
-
-logging.Logger.trace = trace
-
-
 class WebLogger(logging.Logger):
     """
     Handles logging operations for web activities.
@@ -80,6 +66,25 @@ class WebLogger(logging.Logger):
         super().__init__(name)
 
     # --- public API ---
+
+    def trace(self,
+              message: object,
+              *args: object,
+              exc_info: 'logging._ExcInfoType | None' = None,
+              stack_info: bool = False,
+              stacklevel: int = 1,
+              extra: dict[str, object] | None = None) -> None:
+        """
+        Log trace message
+        :param message: message to log
+        :param args: arguments
+        :param exc_info: exception info
+        :param stack_info: stack info
+        :param stacklevel: stack level
+        :param extra: extra information
+        """
+        if self.isEnabledFor(TRACE):
+            self._log(TRACE, message, args, exc_info, extra, stack_info, stacklevel)
 
     def web_error(self) ->  None:
         """
