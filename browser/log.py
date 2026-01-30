@@ -13,6 +13,22 @@ from .logconfig import LOG_CONFIG
 if TYPE_CHECKING:
     from .browser import Browser
 
+TRACE = 5
+logging.addLevelName(TRACE, "TRACE")
+
+def trace(self: logging.Logger, message: object, *args: object, **kwargs: object) -> None:
+    """
+    Log trace message
+    :param self: Logger object
+    :param message: message to log
+    :param args: arguments
+    :param kwargs: keyword arguments
+    """
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, message, args, **kwargs)
+
+logging.Logger.trace = trace
+
 
 class WebLogger(logging.Logger):
     """
