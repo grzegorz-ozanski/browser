@@ -521,7 +521,7 @@ class Browser(Chrome):
             try:
                 return future.result(timeout=timeout + 2)
             except concurrent.futures.TimeoutError:
-                log.debug(f'Timeout {timeout}(s) expired waiting for page to become inactive!')
+                log.debug('Timeout %d second(s) expired waiting for page to become inactive!', timeout)
                 return False
 
     def wait_for_page_load_completed(self) -> None:
@@ -531,7 +531,7 @@ class Browser(Chrome):
         state = None
         while state != 'complete':
             state = self._execute_javascript('return document.readyState')
-            log.debug(f'Page load state == {state}')
+            log.debug('Page load state == %s', state)
             sleep(0.1)
 
     def _execute_javascript(self, script: str, *args: Any) -> Any:
