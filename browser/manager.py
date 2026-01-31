@@ -26,19 +26,19 @@ class BrowserManager:
 
     # noinspection PyBroadException
     @contextmanager
-    def session(self, use_volatile_profile: bool) -> Generator[Browser, Any, None]:
+    def session(self, recaptcha_v3: bool) -> Generator[Browser, Any, None]:
         """
         Context manager for getting browser instance with either persistent profile or volatile user profile
-        :param use_volatile_profile: use volatile user profile
+        :param recaptcha_v3: avoid reCAPTCHA v3 detection by using volatile user profile
 
         :return: Browser instance
         """
-        browser = self._get(use_volatile_profile)
+        browser = self._get(recaptcha_v3)
         try:
             yield browser
         finally:
             # Delete volatile profile
-            if use_volatile_profile:
+            if recaptcha_v3:
                 log.debug("Ending volatile session -> quitting browser")
                 try:
                     browser.quit()
@@ -52,14 +52,14 @@ class BrowserManager:
                     except Exception:
                         log.exception("volatile profile cleanup failed")
 
-    def _get(self, use_volatile_profile: bool) -> Browser:
+    def _get(self, recaptcha_v3: bool) -> Browser:
         """
         Get browser instance with either persistent profile or volatile user profile
-        :param use_volatile_profile: use volatile user profile
+        :param recaptcha_v3: avoid reCAPTCHA v3 detection by using volatile user profile
 
         :return: Browser instance
         """
-        if not use_volatile_profile and self.browser and self.browser.options.profile.persistent:
+        if not recaptcha_v3 and self.browser and self.browser.options.profile.persistent:
             # Always create a new browser when volatile profile is requested.
             # So, return exting instance only if:
             # 1. use_volatile_profile=False,
@@ -75,7 +75,7 @@ class BrowserManager:
                 self.volatile_profile.delete_not_persistent()
             self.browser = None
 
-        if use_volatile_profile:
+        if recaptcha_v3:
             log.debug('Creating new volatile profile browser instance')
             if not self.volatile_profile:
                 self.volatile_profile = Profile.create_from(self.persistent_profile)
@@ -84,9 +84,13 @@ class BrowserManager:
                 # Force creation of fresh volatile profile directory
                 self.volatile_profile.delete_not_persistent()
             self.options.profile = self.volatile_profile
+            self.options.user_agent.next()
+            log.debug('User agent set to "%s"', self.options.user_agent.current)
         else:
             log.debug('Creating new persistent profile browser instance')
             self.options.profile = self.persistent_profile
+            self.options.user_agent.reset()
+            log.debug('User agent reset to default "%s"', self.options.user_agent.current)
         log.debug('Creating browser with profile in "%s"', self.options.profile.path)
         if self.debug_profile:
             input('Press ENTER to continue...')

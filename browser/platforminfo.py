@@ -18,7 +18,7 @@ class PlatformInfo:
         machine = platform.machine().lower()
 
         if self.system == 'Linux':
-            self.platform =  'linux64'
+            self.platform = 'linux64'
         elif self.system == 'Darwin':
             self.platform = 'mac-arm64' if 'arm' in machine else 'mac-x64'
         elif self.system == 'Windows':
