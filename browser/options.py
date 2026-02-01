@@ -103,7 +103,7 @@ class BrowserOptions:
                     self.chrome_location += '.exe'
             chrome_version = self._chrome_version()
             if chrome_version:
-                self.user_agent.version = chrome_version
+                self.user_agent.chrome_version = chrome_version
         else:
             raise NotImplementedError(f'"{self.platform_info.system}" is not supported.')
 
