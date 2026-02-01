@@ -2,6 +2,8 @@
     User agent string management
 """
 import random
+import re
+
 
 class UserAgent:
     """
@@ -74,6 +76,16 @@ class UserAgent:
         Returns a default value of a user agent string
         """
         return self._strings[self.platform][0]
+
+    @property
+    def version(self) -> str:
+        return re.search(r'Chrome/([0-9.]+)\s+', self._strings[self.platform][0])[1]
+
+    @version.setter
+    def version(self, value: str) -> None:
+        self._strings[self.platform][0] = re.sub(r'Chrome/[0-9.]+\s+',
+                                                 f'Chrome/{value} ',
+                                                 self._strings[self.platform][0])
 
     @property
     def current(self) -> str:

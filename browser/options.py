@@ -2,6 +2,7 @@
     Browser options
 """
 import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from .chromedownloader import ChromeDownloader
@@ -100,8 +101,20 @@ class BrowserOptions:
                 if not chrome_path:
                     # Append '.exe' extension to Chrome path only if it was autodetected
                     self.chrome_location += '.exe'
+            chrome_version = self._chrome_version()
+            if chrome_version:
+                self.user_agent.version = chrome_version
         else:
             raise NotImplementedError(f'"{self.platform_info.system}" is not supported.')
+
+    def _chrome_version(self) -> str:
+        chrome_dir = Path(self.chrome_location).parent
+        manifest = chrome_dir.glob('*.manifest')
+        try:
+            root = ET.parse(list(manifest)[0]).getroot()
+            return root[0].attrib['version']
+        except (IndexError, OSError, KeyError):
+            return ''
 
     def as_log_str(self) -> str:
         """
