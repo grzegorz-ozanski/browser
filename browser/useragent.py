@@ -55,7 +55,6 @@ class UserAgent:
                 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0',
                 # Konqueror
                 'Mozilla/5.0 (X11; Linux) KHTML/4.9.1 (like Gecko) Konqueror/4.9',
-                'Mozilla/5.0 (X11; Linux) KHTML/4.5.4 (like Gecko) Konqueror/4.5',
                 # Opera
                 'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16.2',
                 'Opera/12.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.10.289 Version/12.02'
