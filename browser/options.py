@@ -26,7 +26,8 @@ class BrowserOptions:
                  persistent_profile: bool = False,
                  persistent_profile_dir: str = '',
                  profile_name: str = PROFILE_NAME,
-                 timeout: int = 10) -> None:
+                 timeout: int = 10,
+                 renderer_timeout: int = 10) -> None:
         """
         Class construstor
         :param root_path: Chromediver root path
@@ -48,6 +49,7 @@ class BrowserOptions:
         if self.headless:
             self._driver_options.append('headless')
         self.timeout = timeout
+        self.renderer_timeout = renderer_timeout
         self._configure_chromedriver_location(root_path, chrome_path)
         # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
         self._driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
