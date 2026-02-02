@@ -97,6 +97,8 @@ class BrowserManager:
         self.browser = self.factory(self.options)
         self.browser.set_page_load_timeout(self.options.renderer_timeout)
         self.browser.set_script_timeout(self.options.renderer_timeout)
-        log.debug('Browser timezone is: %s ', self.browser.timezone )
+        log.debug('Browser timezone is: %s, renderer timeout is: %d',
+                  self.browser.timezone,
+                  self.options.renderer_timeout)
         return self.browser
 
