@@ -1,11 +1,12 @@
 """
     Browser module
 """
-from .browser import Browser, PageElement
-from .log import setup_logging, WebLogger
+from .browser import Browser
 from .locator import Locator
+from .log import WebLogger, setup_logging
 from .manager import BrowserManager
 from .options import BrowserOptions
+from .page_element import PageElement
 from .useragent import UserAgent
 
 __all__ = [
