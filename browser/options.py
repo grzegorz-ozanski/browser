@@ -43,7 +43,8 @@ class BrowserOptions:
         self._driver_options = ['disable-blink-features=AutomationControlled',
                                 'window-size=1920,1200',
                                 'log-level=3',
-                                'disable-dev-shm-usage']
+                                'disable-dev-shm-usage',
+                                'remote-debugging-pipe']
         self.platform_info = PlatformInfo()
         self.user_agent = UserAgent(self.platform_info.system)
         self.save_trace_logs = save_trace_logs
