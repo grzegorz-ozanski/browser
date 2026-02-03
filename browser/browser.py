@@ -19,35 +19,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from .locator import Locator
-from .options import BrowserOptions
 from .log import setup_logging
+from .options import BrowserOptions
+from .page_element import PageElement
 
 log = setup_logging(__name__)
-
-
-class PageElement(WebElement):
-    def __init__(self, element: WebElement) -> None:
-        super().__init__(element.parent, element._id)
-
-    def find_page_element(self, locator: Locator) -> 'PageElement':
-        """
-        Finds page element
-
-        :param locator: element to look for
-
-        :return: WebElement found
-        """
-        return PageElement(self.find_element(locator.type, locator.value))
-
-    def find_page_elements(self, locator: Locator) -> list['PageElement']:
-        """
-        Finds page elements
-
-        :param locator: elements to look for
-
-        :return: PageElements found
-        """
-        return [PageElement(element) for element in self.find_elements(locator.type, locator.value)]
 
 
 class Browser(Chrome):
