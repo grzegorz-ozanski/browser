@@ -12,13 +12,14 @@ from .profile import Profile
 
 log = setup_logging(__name__)
 
+
 class BrowserManager:
     """
     Browser manager class for handling switchitng between persistent and volatile profiles
     """
     def __init__(self, options: BrowserOptions, factory: type[Browser]):
         self.options = options
-        self.persistent_profile  = options.profile
+        self.persistent_profile = options.profile
         self.volatile_profile: Profile | None = None
         self.browser: Browser | None = None
         self.factory = factory

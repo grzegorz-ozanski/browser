@@ -9,13 +9,17 @@ from .log import setup_logging
 log = setup_logging(__name__)
 
 
-
 class Profile:
     """
     Stores information about user profile directory
     """
 
-    def __init__(self, name: str, base_dir: str, persistent: bool, delete_retries: int = 3, delete_retries_interval: int = 5):
+    def __init__(self,
+                 name: str,
+                 base_dir: str,
+                 persistent: bool,
+                 delete_retries: int = 3,
+                 delete_retries_interval: int = 5):
         self._name = name
         self._base_dir = base_dir
         self.path = Path(base_dir, name)
@@ -61,8 +65,8 @@ class Profile:
                     except OSError:
                         pass
             else:
-                message = (f'Could not delete volatile profile directory "{self.path}" in {self.delete_retries} retries.'
-                           'Fresh profile cannot be created, aborting')
+                message = (f'Fresh profile cannot be created: could not delete volatile profile directory "{self.path}"'
+                           f' in {self.delete_retries} retries, aborting')
                 log.error(message)
                 raise RuntimeError(message)
 

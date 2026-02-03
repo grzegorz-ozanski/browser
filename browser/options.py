@@ -2,6 +2,7 @@
     Browser options
 """
 import tempfile
+# noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from .profile import Profile
 from .useragent import UserAgent
 
 PROFILE_NAME = 'myprofile'
+
 
 class BrowserOptions:
     """
@@ -123,4 +125,4 @@ class BrowserOptions:
         Return string representation of the object applicable for logging (each field in a new line).
         :return:
         """
-        return '\n' + str(self).replace(self.SEP,f'{self.SEP}\n')
+        return '\n' + str(self).replace(self.SEP, f'{self.SEP}\n')

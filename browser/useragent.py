@@ -9,14 +9,15 @@ class UserAgent:
     """
         Manage user agent strings
     """
-    def __init__(self, platform: str) -> None:
+    def __init__(self, platform: str, rng: random.Random | None = None) -> None:
         self.platform = platform.lower()
+        self._random = rng or random.Random()
         # Map containing a per-OS lists of user agent string values
         self._strings = {
             'windows': [
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                 'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/138.0.7204.49 Safari/537.36'
+                'Chrome/138.0.7204.49 Safari/537.36',
                 # Edge
                 'Mozilla/5.0 (Windows NT 10.0) '
                 'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -40,7 +41,7 @@ class UserAgent:
                 'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko',
                 'Mozilla/5.0 (compatible; '
                 'MSIE 10.6; Windows NT 6.1; Trident/5.0; InfoPath.2; '
-                'SLCC1; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; .NET CLR 2.0.50727) 3gpp-gba UNTRUSTED/1.0'
+                'SLCC1; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; .NET CLR 2.0.50727) 3gpp-gba UNTRUSTED/1.0',
                 # Opera
                 'Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.14',
                 'Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.16.2',
@@ -48,7 +49,7 @@ class UserAgent:
             'linux': [
                 'Mozilla/5.0 (X11; Linux x86_64) '
                 'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/138.0.7204.49 Safari/537.36'
+                'Chrome/138.0.7204.49 Safari/537.36',
                 # Firefox
                 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0',
                 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0',
@@ -67,7 +68,7 @@ class UserAgent:
         """
         Returns a random user agent string
         """
-        return random.choice(self._strings[self.platform])
+        return self._random.choice(self._strings[self.platform])
 
     @property
     def default(self) -> str:

@@ -7,14 +7,16 @@ import os
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import cast, Any, Generator, TYPE_CHECKING
+from typing import cast, TYPE_CHECKING, Iterator
 
 from .logconfig import LOG_CONFIG
+
 if TYPE_CHECKING:
     from .browser import Browser
 
 TRACE = 5
 logging.addLevelName(TRACE, "TRACE")
+
 
 class WebLogger(logging.Logger):
     """
@@ -39,10 +41,6 @@ class WebLogger(logging.Logger):
         _base_dir: Logger base directory
         _INITIALIZED_LEVEL_DIRS (set): A class-level attribute used to track per-level directories creation status
         _counters: Per-level directory
-    """
-    """
-    Stores screenshots + page sources in a structured directory hierarchy.
-
     """
     TRACE = 'trace'
     ERROR = 'error'
@@ -75,21 +73,21 @@ class WebLogger(logging.Logger):
               stacklevel: int = 1,
               extra: dict[str, object] | None = None) -> None:
         """
-        Log trace message
-        :param message: message to log
-        :param args: arguments
-        :param exc_info: exception info
-        :param stack_info: stack info
-        :param stacklevel: stack level
-        :param extra: extra information
+        Log a message at TRACE level.
+
+        :param message: log text
+        :param args: formatting arguments
+        :param exc_info: exception details
+        :param stack_info: whether to include stack information
+        :param stacklevel: stack frame depth
+        :param extra: extra context data
         """
         if self.isEnabledFor(TRACE):
             self._log(TRACE, message, args, exc_info, extra, stack_info, stacklevel)
 
-    def web_error(self) ->  None:
+    def web_error(self) -> None:
         """
         Always capture into 'error' dir.
-        :return: WebArtifact
         """
         if WebLogger._BROWSER is None:
             raise RuntimeError('Cannot create web logs: browser is not set.')
@@ -99,7 +97,6 @@ class WebLogger(logging.Logger):
         """
         Capture into 'trace' dir only if enabled.
         :param reason: Logging event reason
-        :return: WebArtifact or None if trace logs are disabled
         """
         if WebLogger._BROWSER is None:
             raise RuntimeError('Cannot create web logs: browser is not set.')
@@ -109,11 +106,10 @@ class WebLogger(logging.Logger):
 
     @classmethod
     @contextmanager
-    def browser(cls, browser: 'Browser') -> Generator[None, Any, None]:
+    def browser(cls, browser: 'Browser') -> Iterator[None]:
         """
         Set browser context
         :param browser: Browser instance
-        :return Generator object
         """
         try:
             cls._BROWSER = browser
@@ -123,11 +119,11 @@ class WebLogger(logging.Logger):
 
     @classmethod
     @contextmanager
-    def group(cls, name: str) -> Generator[None, Any, None]:
+    def group(cls, name: str) -> Iterator[None]:
         """
-        Enters and exists web logger group
-        :param name: group name
-        :return Generator object
+        Yield web logs grouped by the given name.
+
+        :param name: grouping key
         """
         try:
             cls._GROUP_NAME = name
@@ -165,7 +161,6 @@ class WebLogger(logging.Logger):
             log.exception('Cannot create log entry')
         return None
 
-
     def _get_first_external_frame(self) -> inspect.FrameInfo:
         """
             Get first external call frame (e.g. outside WebLogger object)
@@ -189,7 +184,8 @@ class WebLogger(logging.Logger):
         frame_info = self._get_first_external_frame()
 
         # get the class name if available
-        class_name = f"{frame_info.frame.f_locals['self'].__class__.__name__}_" if 'self' in frame_info.frame.f_locals else ""
+        class_name = f"{frame_info.frame.f_locals['self'].__class__.__name__}_" \
+            if 'self' in frame_info.frame.f_locals else ""
 
         return f'{class_name}{frame_info.function}'
 
@@ -209,7 +205,7 @@ class WebLogger(logging.Logger):
     def _get_logger_dir(self, level: str, logger_name: str) -> Path:
         """
         Lazily rotate and create the directory used for this run.
-        Rotation happens once per subdir per instance.
+        Rotation happens at most once per level ("trace"/"error") per process run.
         :param level: Logging level
         :param logger_name: Logger name
         :return logging directory for specified level and logger name
@@ -227,8 +223,6 @@ class WebLogger(logging.Logger):
 
         # Create active directory (per-name for trace, shared for error)
         logger_dir = self._resolve_dir(level, logger_name)
-        f = self._get_first_external_frame()
-        n = self._get_caller()
         logger_dir.mkdir(parents=True, exist_ok=True)
 
         self._INITIALIZED_LEVEL_DIRS.add(level)
@@ -324,6 +318,5 @@ def setup_logging(name: str) -> WebLogger:
     LOG_CONFIG.initialized = True
     return logger
 
+
 log = setup_logging(__name__)
-
-

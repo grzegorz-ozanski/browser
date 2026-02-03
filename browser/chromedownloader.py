@@ -41,6 +41,7 @@ def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
                 if mode:
                     os.chmod(target_path, mode)
 
+
 class ChromeDownloader:
     """
         Download and unpack the latest stable Chrome driver and Chrome
@@ -77,7 +78,8 @@ class ChromeDownloader:
 
     def download_all(self, chromedriver_root: Path, chrome_subdir: str | Path) -> None:
         """
-        Downloads all components (Chrome driver and Chrome) into directories provided. The target directory tree will be:
+        Downloads all components (Chrome driver and Chrome) into directories provided.
+        The target directory tree:
 
         <chromedriver_root>/
             ├── chromedriver[.exe]

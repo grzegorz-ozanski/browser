@@ -4,12 +4,14 @@
 import platform
 import sys
 
+
 class PlatformInfo:
     """
     Store both user-friendly system name and platform string compatible with Google Chrome/Chromedriver
     downloads API JSON
     """
     unknown = '<unknown>'
+
     def __init__(self) -> None:
         """
             Initialize platform detection info for browser configuration.

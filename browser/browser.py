@@ -24,6 +24,7 @@ from .log import setup_logging
 
 log = setup_logging(__name__)
 
+
 class PageElement(WebElement):
     def __init__(self, element: WebElement) -> None:
         super().__init__(element.parent, element._id)
@@ -47,6 +48,7 @@ class PageElement(WebElement):
         :return: PageElements found
         """
         return [PageElement(element) for element in self.find_elements(locator.type, locator.value)]
+
 
 class Browser(Chrome):
     """
@@ -103,7 +105,7 @@ class Browser(Chrome):
         return str(self._execute_javascript("return Intl.DateTimeFormat().resolvedOptions().timeZone"))
 
     def click_page_element(self, locator: Locator,
-                           timeout: int | None = None) ->None:
+                           timeout: int | None = None) -> None:
         """
         Click an element in the page
         :param locator: element locator
@@ -193,8 +195,8 @@ class Browser(Chrome):
                                                timeout: int | None = None) -> None:
         """
         Force click an element, ignoring any elements that may overlap it.
-        If :param by and :param value are provided, the element will be searched for again if StaleElementReferenceException
-        occurs during the click.
+        If :param by and :param value are provided, the element will be searched for again
+        if StaleElementReferenceException occurs during the click.
 
         :param element: WebElement to click
         :param locator: element locator
@@ -600,7 +602,9 @@ class Browser(Chrome):
                 // Check if either element or elementAtPoint is null
                 if (element && elementAtPoint) {
                     // Check if the element or one of its descendants is at that point
-                    return (elementAtPoint === element) || element.contains(elementAtPoint) || elementAtPoint.contains(element);
+                    return (elementAtPoint === element) || 
+                    element.contains(elementAtPoint) || 
+                    elementAtPoint.contains(element);
                 } else {
                     return false;
                 }

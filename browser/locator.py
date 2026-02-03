@@ -3,6 +3,7 @@
 """
 from dataclasses import dataclass
 
+
 @dataclass
 class Locator:
     """Element locator used for finding inputs and buttons in the page."""
