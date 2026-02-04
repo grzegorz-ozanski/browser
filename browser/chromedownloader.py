@@ -3,6 +3,7 @@
 """
 import io
 import os
+import re
 import shutil
 import zipfile
 from enum import StrEnum
@@ -17,6 +18,7 @@ log = setup_logging(__name__)
 CHROME_API_ENDPOINT_URL = \
     'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json'
 
+LATEST_STABLE_VERSION = '145.0.7632.26'
 
 def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
     """
@@ -71,7 +73,15 @@ class ChromeDownloader:
             response = requests.get(CHROME_API_ENDPOINT_URL)
             response.raise_for_status()
             data = response.json()
-            return data['channels']['Stable']['downloads']
+            if LATEST_STABLE_VERSION == 'latest':
+                log.debug('Using latest stable version provided by Google')
+                return data['channels']['Stable']['downloads']
+            log.debug('Latest stable version set to %s', LATEST_STABLE_VERSION)
+            urls = data['channels']['Stable']['downloads']
+            for what in urls.keys():
+                for platform_dict in urls[what]:
+                    platform_dict['url'] = re.sub(r'/[0-9.]+/', f'/{LATEST_STABLE_VERSION}/', platform_dict['url'])
+            return urls
         except requests.exceptions.ConnectionError as e:
             log.error('Failed to download latest stable downloads: %s', e)
             return None
