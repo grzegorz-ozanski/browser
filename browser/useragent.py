@@ -44,7 +44,7 @@ class UserAgent:
                 'SLCC1; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; .NET CLR 2.0.50727) 3gpp-gba UNTRUSTED/1.0',
                 # Opera
                 'Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.14',
-                'Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.16.2',
+                'Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.16.2'
             ],
             'linux': [
                 'Mozilla/5.0 (X11; Linux x86_64) '
@@ -54,8 +54,6 @@ class UserAgent:
                 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0',
                 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0',
                 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0',
-                # Konqueror
-                'Mozilla/5.0 (X11; Linux) KHTML/4.9.1 (like Gecko) Konqueror/4.9',
                 # Opera
                 'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16.2',
                 'Opera/12.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.10.289 Version/12.02'
