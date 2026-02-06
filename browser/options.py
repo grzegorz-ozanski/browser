@@ -54,8 +54,6 @@ class BrowserOptions:
         self.timeout = timeout
         self.renderer_timeout = renderer_timeout
         self._configure_chromedriver_location(root_path, chrome_path)
-        # Options that potentially lowers reCaptcha v3 (automatic bot detection) score, making some page unusable
-        self._driver_options += ['disable-gpu', 'disable-webgl', 'enable-unsafe-swiftshader', 'no-sandbox']
         # Another remedy for reCatcha v3
         self.profile = Profile(profile_name, persistent_profile_dir or tempfile.gettempdir(), persistent_profile)
         self.error_log_dir = 'error'
