@@ -44,14 +44,17 @@ class BrowserOptions:
                                 'window-size=1920,1200',
                                 'log-level=3',
                                 'disable-dev-shm-usage',
-                                'remote-debugging-pipe',
-                                'no-sandbox']
+                                'remote-debugging-pipe']
         self.platform_info = PlatformInfo()
-        self.user_agent = UserAgent(self.platform_info.system)
-        self.save_trace_logs = save_trace_logs
+        if self.platform_info.system == 'Linux':
+            # Without it: Chrome for Testing crashes in Linux Docker GitHub Runner environment
+            # With it: Multimedia provider cannot log in on Windows
+            self._driver_options.append('no-sandbox')
         self.headless = headless
         if self.headless:
             self._driver_options.append('headless')
+        self.user_agent = UserAgent(self.platform_info.system)
+        self.save_trace_logs = save_trace_logs
         self.timeout = timeout
         self.renderer_timeout = renderer_timeout
         self._configure_chromedriver_location(root_path, chrome_path)
