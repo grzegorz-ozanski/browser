@@ -7,7 +7,8 @@ import os
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import cast, TYPE_CHECKING, Iterator
+from types import TracebackType
+from typing import cast, TYPE_CHECKING, Iterator, TypeAlias
 
 from .logconfig import LOG_CONFIG
 
@@ -16,6 +17,13 @@ if TYPE_CHECKING:
 
 TRACE = 5
 logging.addLevelName(TRACE, "TRACE")
+
+ExcInfo: TypeAlias = (
+        bool
+        | tuple[type[BaseException], BaseException, TracebackType | None]
+        | tuple[None, None, None]
+        | BaseException
+)
 
 
 class WebLogger(logging.Logger):
@@ -37,10 +45,13 @@ class WebLogger(logging.Logger):
       - if 'trace' dir exists, it is renamed to 'trace.###' ON FIRST WRITE in this run
       - same for 'error'
 
-    Attributes:
+    Instance attributes:
         _base_dir: Logger base directory
-        _INITIALIZED_LEVEL_DIRS (set): A class-level attribute used to track per-level directories creation status
-        _counters: Per-level directory
+    Class attributes:
+        _INITIALIZED_LEVEL_DIRS (set): Track per-level directories creation status
+        _BROWSER: Browser instance
+        _GROUP_NAME: log group name
+        _COUNTERS: Per-level and group log counter
     """
     TRACE = 'trace'
     ERROR = 'error'
@@ -50,6 +61,7 @@ class WebLogger(logging.Logger):
     _INITIALIZED_LEVEL_DIRS: set[str] = set()  # which logging subdirs were rotated and/or initialized in this run
     _BROWSER: 'Browser | None' = None
     _GROUP_NAME: str | None = None
+    _COUNTERS: dict[str, int] = {}  # per logging level counter (trace/error)
 
     def __init__(self, name: str, base_dir: str | Path = "."):
         """
@@ -60,7 +72,6 @@ class WebLogger(logging.Logger):
         self._callstack_level: int | None = None
         self._base_dir = Path(base_dir)
 
-        self._counters: dict[str, int] = {}  # per logging level counter (trace/error)
         super().__init__(name)
 
     # --- public API ---
@@ -68,7 +79,7 @@ class WebLogger(logging.Logger):
     def trace(self,
               message: object,
               *args: object,
-              exc_info: 'logging._ExcInfoType | None' = None,
+              exc_info: ExcInfo | None = None,
               stack_info: bool = False,
               stacklevel: int = 1,
               extra: dict[str, object] | None = None) -> None:
@@ -127,6 +138,7 @@ class WebLogger(logging.Logger):
         """
         try:
             cls._GROUP_NAME = name
+            cls._COUNTERS = {}
             yield
         finally:
             cls._GROUP_NAME = None
@@ -261,8 +273,8 @@ class WebLogger(logging.Logger):
         :param level:logging level
         :return: numeric file id
         """
-        self._counters[level] = self._counters.get(level, 0) + 1
-        return self._counters[level]
+        self._COUNTERS[level] = self._COUNTERS.get(level, 0) + 1
+        return self._COUNTERS[level]
 
     def _next_filename(self, level: str, reason: str) -> str:
         """
