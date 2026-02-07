@@ -3,6 +3,9 @@
 """
 import concurrent.futures
 import os
+import signal
+import subprocess
+import threading
 from datetime import datetime
 from time import sleep, monotonic
 from typing import Any, Callable, cast
@@ -258,6 +261,40 @@ class Browser(Chrome):
 
         except Exception as e:
             print(f'Error navigating to "{url}": {e}')
+
+    def quit(self) -> None:  # override
+        """
+        Force quit browser
+        """
+        old_handler = None
+        try:
+            if os.name != "nt":
+                old_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+            # run 'quit()' in a thread with timeout
+            exc: Exception | None = None
+
+            def _do_quit() -> None:
+                nonlocal exc
+                try:
+                    super(Browser, self).quit()
+                except Exception as e:
+                    exc = e
+
+            t = threading.Thread(target=_do_quit, daemon=True)
+            t.start()
+            t.join(timeout=10)
+
+            if t.is_alive():
+                # fallback: kill chromedriver process tree (Windows)
+                self._force_kill_driver_tree()
+
+            if exc:
+                raise exc
+
+        finally:
+            if old_handler is not None:
+                signal.signal(signal.SIGINT, old_handler)
 
     def safe_click(self, by: str, value: str,
                    timeout: int | None = None, ignore_exception: bool = False) -> None:
@@ -521,6 +558,21 @@ class Browser(Chrome):
         """
         # Ignore 'mypy --strict' error on a library function
         return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
+
+    def _force_kill_driver_tree(self) -> None:
+        # noinspection PyBroadException
+        try:
+            svc = getattr(self, "service", None)
+            proc = getattr(svc, "process", None) if svc else None
+            pid = getattr(proc, "pid", None)
+            if pid and os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(pid)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+        except Exception:
+            log.exception("force-kill fallback failed")
 
     def _timeout(self, timeout: int | None = None) -> int:
         """

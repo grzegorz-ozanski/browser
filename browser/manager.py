@@ -103,3 +103,22 @@ class BrowserManager:
                   self.options.renderer_timeout)
         return self.browser
 
+    def close(self) -> None:
+        """
+        Close Chrome browser instance
+        """
+        if self.browser:
+            # noinspection PyBroadException
+            try:
+                self.browser.quit()
+            except Exception:
+                log.exception("browser.quit() failed in BrowserManager.close()")
+            finally:
+                self.browser = None
+
+        if self.volatile_profile:
+            # noinspection PyBroadException
+            try:
+                self.volatile_profile.delete_not_persistent()
+            except Exception:
+                log.exception("volatile profile cleanup failed in BrowserManager.close()")
