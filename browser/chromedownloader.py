@@ -20,6 +20,7 @@ CHROME_API_ENDPOINT_URL = \
 
 LATEST_STABLE_VERSION = '145.0.7632.26'
 
+
 def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
     """
     Unpack downloaded zip archive replacing internal root dir with provided one
