@@ -24,7 +24,7 @@ class PlatformInfo:
         elif self.system == 'Darwin':
             self.platform = 'mac-arm64' if 'arm' in machine else 'mac-x64'
         elif self.system == 'Windows':
-            self.platform = 'win64' if sys.maxsize > 2 ** 32 else 'win32'
+            self.platform = 'win64' if sys.maxsize > 2 ** 31 else 'win32'
         else:
             self.platform = self.unknown
 
