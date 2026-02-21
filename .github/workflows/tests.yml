@@ -152,25 +152,26 @@ jobs:
         HTML
         ls -la index.html
 
+    - name: Start ssh-agent
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.REPORTS_SSH_KEY }}
+
     - name: Upload coverage archive via SFTP (pwsh, cross-platform)
       shell: bash
       env:
         SFTP_HOST: ${{ env.REPORTS_TS_HOST }}
         SFTP_PORT: ${{ env.REPORTS_TS_PORT }}   # np. 22
         SFTP_USER: ${{ secrets.REPORTS_USER }}   # np. uploader
-        SFTP_KEY:  ${{ secrets.REPORTS_SSH_KEY }}# private key (PEM/OpenSSH)
         LOCAL_FILE: ${{ env.COVERAGE_ARCHIVE }}
 
       run: |
         set -euo pipefail
     
         mkdir -p ~/.ssh
-        printf "%s\n" "SFTP_KEY" > ~/.ssh/reports_key
-        chmod 600 ~/.ssh/reports_key
-    
         ssh-keyscan -p "$SFTP_PORT" "$SFTP_HOST" >> ~/.ssh/known_hosts
     
-        sftp -i ~/.ssh/reports_key -P "$SFTP_PORT" "$SFTP_USER@$SFTP_HOST" <<EOF
+        sftp -P "$SFTP_PORT" "$SFTP_USER@$SFTP_HOST" <<EOF
         mkdir $REMOTE_DIR
         mkdir $REMOTE_DIR/browser
         cd $REMOTE_DIR/browser
