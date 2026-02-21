@@ -176,3 +176,4 @@ jobs:
         cd $REMOTE_DIR/browser
         put index.html
         bye
+        EOF
