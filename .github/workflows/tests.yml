@@ -7,9 +7,8 @@ on:
 
 env:
   COVERAGE_REPORT_FILE: coverage.txt
-  # REMOTE_DIR: /home/uploader/upload/incoming
-  REMOTE_DIR: upload
-  COVERAGE_ARCHIVE: browser-htmlcov.zip
+  REMOTE_DIR: /home/uploader/upload/incoming
+  COVERAGE_ARCHIVE: coverage.zip
   REPORTS_TS_HOST: 100.127.93.3
   REPORTS_TS_PORT: 2222
 
@@ -22,11 +21,9 @@ jobs:
 
     steps:
     - name: Checkout current repo
-      if: false
       uses: actions/checkout@v4
 
     - name: Set up Python
-      if: false
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
@@ -38,13 +35,11 @@ jobs:
         node-version: 'lts/*'
 
     - name: Install dependencies
-      if: false
       shell: pwsh
       run: |
         pip install -r requirements-dev.txt
 
     - name: Prepare environment
-      if: false
       shell: pwsh
       run: |
         # Add browser repo to PYTHONPATH
@@ -57,15 +52,13 @@ jobs:
         npm install -g pyright
 
     - name: Run tests with coverage
-      if: false
       shell: pwsh
       run: |
         coverage run -m pytest
         coverage report
 
     - name: Generate HTML coverage report
-      if: false
-#      if: always()
+      if: always()
       shell: pwsh
       run: |
         coverage html
@@ -73,8 +66,7 @@ jobs:
         Compress-Archive -Path htmlcov -DestinationPath ${env:COVERAGE_ARCHIVE}
 
     - name: Add coverage report to summary
-      if: false
-#      if: always()
+      if: always()
       shell: pwsh
       run: |
         echo '### 🧪 Test Coverage Summary' >> ${env:GITHUB_STEP_SUMMARY}
@@ -173,8 +165,7 @@ jobs:
     
         sftp -P "$SFTP_PORT" "$SFTP_USER@$SFTP_HOST" <<EOF
         mkdir $REMOTE_DIR
-        mkdir $REMOTE_DIR/browser
-        cd $REMOTE_DIR/browser
+        cd $REMOTE_DIR
         put index.html
         bye
         EOF
