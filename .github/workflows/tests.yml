@@ -113,37 +113,6 @@ jobs:
         tags: tag:ci
         ping: ${{ env.REPORTS_TS_HOST }}
 
-    - name: Debug Tailnet + TCP test
-      shell: bash
-      run: |
-        set -euo pipefail
-    
-        echo "=== tailscale status ==="
-        tailscale status
-    
-        echo "=== tailscale ip ==="
-        tailscale ip
-    
-        echo "=== Testing TCP ${REPORTS_TS_PORT} ==="
-        nc -zv ${REPORTS_TS_HOST} ${REPORTS_TS_PORT}
-
-    - name: Create a test HTML file (with run id)
-      shell: bash
-      run: |
-        set -euo pipefail
-        cat > index.html <<HTML
-        <!doctype html>
-        <html>
-          <head><meta charset="utf-8"><title>CI test</title></head>
-          <body>
-            <h1>Hello from GitHub Actions</h1>
-            <p>Run ID: ${GITHUB_RUN_ID}</p>
-            <p>SHA: ${GITHUB_SHA}</p>
-          </body>
-        </html>
-        HTML
-        ls -la index.html
-
     - name: Start ssh-agent
       uses: webfactory/ssh-agent@v0.9.0
       with:
@@ -155,7 +124,6 @@ jobs:
         SFTP_HOST: ${{ env.REPORTS_TS_HOST }}
         SFTP_PORT: ${{ env.REPORTS_TS_PORT }}   # np. 22
         SFTP_USER: ${{ secrets.REPORTS_USER }}   # np. uploader
-        LOCAL_FILE: ${{ env.COVERAGE_ARCHIVE }}
 
       run: |
         set -euo pipefail
@@ -166,6 +134,6 @@ jobs:
         sftp -P "$SFTP_PORT" "$SFTP_USER@$SFTP_HOST" <<EOF
         mkdir $REMOTE_DIR
         cd $REMOTE_DIR
-        put index.html
+        put $COVERAGE_ARCHIVE
         bye
         EOF
