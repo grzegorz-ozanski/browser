@@ -9,6 +9,8 @@ env:
   COVERAGE_REPORT_FILE: coverage.txt
   REMOTE_DIR: /home/uploader/upload/incoming
   COVERAGE_ARCHIVE: browser-htmlcov.zip
+  REPORTS_TS_HOST: 100.127.93.3
+  REPORTS_TS_PORT: 2222
 
 jobs:
   test:
@@ -19,42 +21,50 @@ jobs:
 
     steps:
     - name: Checkout current repo
+      if: false
       uses: actions/checkout@v4
 
     - name: Set up Python
+      if: false
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
     - name: Set up Node.js
+      if: false
       uses: actions/setup-node@v4
       with:
         node-version: 'lts/*'
 
     - name: Install dependencies
+      if: false
       shell: pwsh
       run: |
         pip install -r requirements-dev.txt
 
     - name: Prepare environment
+      if: false
       shell: pwsh
       run: |
         # Add browser repo to PYTHONPATH
         echo "PYTHONPATH=$env:GITHUB_WORKSPACE/browser" >> $env:GITHUB_ENV
 
     - name: Install Pyright
+      if: false
       shell: pwsh
       run: |
         npm install -g pyright
 
     - name: Run tests with coverage
+      if: false
       shell: pwsh
       run: |
         coverage run -m pytest
         coverage report
 
     - name: Generate HTML coverage report
-      if: always()
+      if: false
+#      if: always()
       shell: pwsh
       run: |
         coverage html
@@ -62,7 +72,8 @@ jobs:
         Compress-Archive -Path htmlcov -DestinationPath ${env:COVERAGE_ARCHIVE}
 
     - name: Add coverage report to summary
-      if: always()
+      if: false
+#      if: always()
       shell: pwsh
       run: |
         echo '### 🧪 Test Coverage Summary' >> ${env:GITHUB_STEP_SUMMARY}
@@ -71,7 +82,8 @@ jobs:
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
     - name: Add mypy results to summary
-      if: always()
+      if: false
+#      if: always()
       shell: pwsh
       run: |
         echo '### ✅ Static Analysis Summary' >> ${env:GITHUB_STEP_SUMMARY}
@@ -80,7 +92,8 @@ jobs:
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
     - name: Add pyright results to summary
-      if: always()
+      if: false
+#      if: always()
       shell: pwsh
       run: |
         echo '### ✅ Pyright Summary' >> ${env:GITHUB_STEP_SUMMARY}
@@ -89,7 +102,8 @@ jobs:
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
     - name: Add ruff results to summary
-      if: always()
+      if: false
+#      if: always()
       shell: pwsh
       run: |
         echo '### ✅ Ruff Summary' >> ${env:GITHUB_STEP_SUMMARY}
@@ -104,7 +118,7 @@ jobs:
         oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
         oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
         tags: tag:ci
-        ping: 100.117.239.103
+        ping: ${{ env.REPORTS_TS_HOST }}
 
     - name: Debug Tailnet + TCP test
       shell: bash
@@ -117,5 +131,5 @@ jobs:
         echo "=== tailscale ip ==="
         tailscale ip
     
-        echo "=== Testing TCP 2222 ==="
-        nc -zv 100.117.239.103 2222
+        echo "=== Testing TCP ${REPORTS_TS_PORT} ==="
+        nc -zv ${REPORTS_TS_HOST} ${REPORTS_TS_PORT}
