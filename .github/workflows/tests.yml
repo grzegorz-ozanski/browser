@@ -97,11 +97,25 @@ jobs:
         ruff check . >> ${env:GITHUB_STEP_SUMMARY}
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
+    - name: Connect to Tailnet (ephemeral)
+      uses: tailscale/github-action@v3
       with:
-        name: browser-coverage
-        retention-days: 3
-        path: |
-          htmlcov/**
+        authkey: ${{ secrets.TS_AUTHKEY }}
+        args: >-
+          --ephemeral
+          --ssh=false
+          --accept-dns=true
+
+    - name: Debug Tailnet + TCP test
+      shell: bash
+      run: |
+        set -euo pipefail
+    
+        echo "=== tailscale status ==="
+        tailscale status
+    
+        echo "=== tailscale ip ==="
+        tailscale ip
+    
+        echo "=== Testing TCP 2222 ==="
+        nc -zv 100.117.239.103 2222
