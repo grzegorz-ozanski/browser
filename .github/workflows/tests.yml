@@ -7,7 +7,8 @@ on:
 
 env:
   COVERAGE_REPORT_FILE: coverage.txt
-  REMOTE_DIR: /home/uploader/upload/incoming
+  # REMOTE_DIR: /home/uploader/upload/incoming
+  REMOTE_DIR: upload
   COVERAGE_ARCHIVE: browser-htmlcov.zip
   REPORTS_TS_HOST: 100.127.93.3
   REPORTS_TS_PORT: 2222
@@ -133,3 +134,45 @@ jobs:
     
         echo "=== Testing TCP ${REPORTS_TS_PORT} ==="
         nc -zv ${REPORTS_TS_HOST} ${REPORTS_TS_PORT}
+
+    - name: Create a test HTML file (with run id)
+      shell: bash
+      run: |
+        set -euo pipefail
+        cat > index.html <<HTML
+        <!doctype html>
+        <html>
+          <head><meta charset="utf-8"><title>CI test</title></head>
+          <body>
+            <h1>Hello from GitHub Actions</h1>
+            <p>Run ID: ${GITHUB_RUN_ID}</p>
+            <p>SHA: ${GITHUB_SHA}</p>
+          </body>
+        </html>
+        HTML
+        ls -la index.html
+
+    - name: Upload coverage archive via SFTP (pwsh, cross-platform)
+      shell: bash
+      env:
+        SFTP_HOST: ${{ secrets.REPORTS_HOST }}
+        SFTP_PORT: ${{ secrets.REPORTS_PORT }}   # np. 22
+        SFTP_USER: ${{ secrets.REPORTS_USER }}   # np. uploader
+        SFTP_KEY:  ${{ secrets.REPORTS_SSH_KEY }}# private key (PEM/OpenSSH)
+        LOCAL_FILE: ${{ env.COVERAGE_ARCHIVE }}
+
+      run: |
+        set -euo pipefail
+    
+        mkdir -p ~/.ssh
+        printf "%s\n" "SFTP_KEY" > ~/.ssh/reports_key
+        chmod 600 ~/.ssh/reports_key
+    
+        ssh-keyscan -p "$SFTP_PORT" "$SFTP_HOST" >> ~/.ssh/known_hosts
+    
+        sftp -i ~/.ssh/reports_key -P "$SFTP_PORT" "$SFTP_USER@$SFTP_HOST" <<EOF
+        mkdir $REMOTE_DIR
+        mkdir $REMOTE_DIR/browser
+        cd $REMOTE_DIR/browser
+        put index.html
+        bye
