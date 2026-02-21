@@ -7,6 +7,8 @@ on:
 
 env:
   COVERAGE_REPORT_FILE: coverage.txt
+  REMOTE_DIR: /home/uploader/upload/incoming
+  COVERAGE_ARCHIVE: browser-htmlcov.zip
 
 jobs:
   test:
@@ -58,14 +60,7 @@ jobs:
       run: |
         coverage html
         coverage report > ${env:COVERAGE_REPORT_FILE}
-        Compress-Archive -Path htmlcov -DestinationPath htmlcov.zip
-
-    - name: Upload coverage artifact
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      with:
-        name: htmlcov
-        path: payments/htmlcov.zip
+        Compress-Archive -Path htmlcov -DestinationPath ${env:COVERAGE_ARCHIVE}
 
     - name: Add coverage report to summary
       if: always()
@@ -102,3 +97,52 @@ jobs:
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
         ruff check . >> ${env:GITHUB_STEP_SUMMARY}
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
+
+    - name: Upload coverage archive via SFTP (pwsh, cross-platform)
+      shell: pwsh
+      env:
+        SFTP_HOST: ${{ secrets.REPORTS_HOST }}
+        SFTP_PORT: ${{ secrets.REPORTS_PORT }}   # np. 22
+        SFTP_USER: ${{ secrets.REPORTS_USER }}   # np. uploader
+        SFTP_KEY:  ${{ secrets.REPORTS_SSH_KEY }}# private key (PEM/OpenSSH)
+        LOCAL_FILE: ${{ env.COVERAGE_ARCHIVE }}
+      run: |
+        $ErrorActionPreference = "Stop"
+    
+        # --- sanity check: commands present
+        foreach ($cmd in @("ssh","sftp","ssh-keyscan")) {
+          if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+            throw "Missing command '$cmd' on runner. Install OpenSSH client or use ubuntu-latest."
+          }
+        }
+    
+        # --- write key to a temp file
+        $keyPath = Join-Path $env:RUNNER_TEMP "reports_key"
+        Set-Content -Path $keyPath -Value $env:SFTP_KEY -NoNewline
+        # (chmod) - on Windows this is not required; on Linux/macOS needed
+        if ($IsLinux -or $IsMacOS) {
+          & chmod 600 $keyPath
+        }
+    
+        # --- known_hosts
+        $sshDir = Join-Path $HOME ".ssh"
+        New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
+        $knownHosts = Join-Path $sshDir "known_hosts"
+    
+        # ssh-keyscan outputs to stdout; append to known_hosts
+        $scan = & ssh-keyscan -p $env:SFTP_PORT $env:SFTP_HOST 2>$null
+        if (-not $scan) { throw "ssh-keyscan returned empty output (host unreachable / blocked?)" }
+        Add-Content -Path $knownHosts -Value $scan
+    
+        # --- create a batch file for sftp
+        $batchPath = Join-Path $env:RUNNER_TEMP "sftp_batch.txt"
+        @"
+        mkdir $($env:REMOTE_DIR)
+        cd $($env:REMOTE_DIR)
+        put $($env:LOCAL_FILE)
+        bye
+        "@ | Set-Content -Path $batchPath -NoNewline
+    
+        # --- run sftp in batch mode
+        $target = "$($env:SFTP_USER)@$($env:SFTP_HOST)"
+        & sftp -i $keyPath -P $env:SFTP_PORT -o "UserKnownHostsFile=$knownHosts" -o "StrictHostKeyChecking=yes" -b $batchPath $target
