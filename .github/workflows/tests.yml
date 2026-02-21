@@ -64,6 +64,7 @@ jobs:
         coverage html
         coverage report > ${COVERAGE_REPORT_FILE}
         mkdir -p browser/coverage
+        rm -rf htmlcov/__pycache__
         mv htmlcov/* browser/coverage
 
     - name: Archive HTML coverage report
