@@ -59,11 +59,18 @@ jobs:
 
     - name: Generate HTML coverage report
       if: always()
-      shell: pwsh
+      shell: bash
       run: |
         coverage html
-        coverage report > ${env:COVERAGE_REPORT_FILE}
-        Compress-Archive -Path htmlcov/* -DestinationPath ${env:COVERAGE_ARCHIVE}
+        coverage report > ${COVERAGE_REPORT_FILE}
+        mkdir -p browser/coverage
+        mv htmlcov/* browser/coverage
+
+    - name: Archive HTML coverage report
+      if: always()
+      shell: pwsh
+      run: |
+        Compress-Archive -Path browser -DestinationPath ${env:COVERAGE_ARCHIVE}
 
     - name: Add coverage report to summary
       if: always()
