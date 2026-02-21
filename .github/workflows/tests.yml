@@ -155,8 +155,8 @@ jobs:
     - name: Upload coverage archive via SFTP (pwsh, cross-platform)
       shell: bash
       env:
-        SFTP_HOST: ${{ secrets.REPORTS_HOST }}
-        SFTP_PORT: ${{ secrets.REPORTS_PORT }}   # np. 22
+        SFTP_HOST: ${{ secrets.REPORTS_TS_HOST }}
+        SFTP_PORT: ${{ secrets.REPORTS_TS_PORT }}   # np. 22
         SFTP_USER: ${{ secrets.REPORTS_USER }}   # np. uploader
         SFTP_KEY:  ${{ secrets.REPORTS_SSH_KEY }}# private key (PEM/OpenSSH)
         LOCAL_FILE: ${{ env.COVERAGE_ARCHIVE }}
