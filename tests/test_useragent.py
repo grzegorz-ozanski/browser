@@ -14,6 +14,7 @@ PLATFORMS = [
 
 CHROME_VERSION = '138.0.7204.49'
 
+
 @pytest.fixture
 def ua(platform: str) -> UserAgent:
     """

@@ -1,6 +1,8 @@
 """
     Platforminfo tests
 """
+import platform
+import sys
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -21,8 +23,8 @@ import browser.platforminfo as platforminfo
     ],
 )
 def test_platform_mapping_non_windows(monkeypatch: MonkeyPatch, sysname: str, machine: str, expected: str) -> None:
-    monkeypatch.setattr(platforminfo.platform, "system", lambda: sysname)
-    monkeypatch.setattr(platforminfo.platform, "machine", lambda: machine)
+    monkeypatch.setattr(platform, "system", lambda: sysname)
+    monkeypatch.setattr(platform, "machine", lambda: machine)
 
     pi = platforminfo.PlatformInfo()
     assert pi.system == sysname
@@ -40,17 +42,17 @@ def test_platform_mapping_non_windows(monkeypatch: MonkeyPatch, sysname: str, ma
     ],
 )
 def test_platform_mapping_windows(monkeypatch: MonkeyPatch, maxsize: int, expected: str) -> None:
-    monkeypatch.setattr(platforminfo.platform, "system", lambda: "Windows")
-    monkeypatch.setattr(platforminfo.platform, "machine", lambda: "AMD64")
-    monkeypatch.setattr(platforminfo.sys, "maxsize", maxsize)
+    monkeypatch.setattr(platform, "system", lambda: "Windows")
+    monkeypatch.setattr(platform, "machine", lambda: "AMD64")
+    monkeypatch.setattr(sys, "maxsize", maxsize)
 
     pi = platforminfo.PlatformInfo()
     assert pi.platform == expected
 
 
 def test_system_is(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setattr(platforminfo.platform, "system", lambda: "Linux")
-    monkeypatch.setattr(platforminfo.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
 
     pi = platforminfo.PlatformInfo()
     assert pi.system_is("Linux")
