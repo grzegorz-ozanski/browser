@@ -97,14 +97,14 @@ jobs:
         ruff check . >> ${env:GITHUB_STEP_SUMMARY}
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
+
     - name: Connect to Tailnet (ephemeral)
-      uses: tailscale/github-action@v3
+      uses: tailscale/github-action@v4
       with:
-        authkey: ${{ secrets.TS_AUTHKEY }}
-        args: >-
-          --ephemeral
-          --ssh=false
-          --accept-dns=true
+        oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+        oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+        tags: tag:ci
+        ping: 100.117.239.103
 
     - name: Debug Tailnet + TCP test
       shell: bash
