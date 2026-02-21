@@ -1,0 +1,95 @@
+name: Run unit tests
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+
+env:
+  COVERAGE_REPORT_FILE: coverage.txt
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the changed files back to the repository.
+      contents: write
+
+    steps:
+    - name: Checkout current repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+
+    - name: Install dependencies
+      shell: pwsh
+      run: |
+        pip install -r requirements-dev.txt
+
+    - name: Prepare environment
+      shell: pwsh
+      run: |
+        # Add browser repo to PYTHONPATH
+        echo "PYTHONPATH=$env:GITHUB_WORKSPACE/browser" >> $env:GITHUB_ENV
+
+    - name: Install Pyright
+      shell: pwsh
+      run: |
+        npm install -g pyright
+
+    - name: Run tests with coverage
+      shell: pwsh
+      run: |
+        coverage run -m pytest
+        coverage report
+
+    - name: Generate HTML coverage report
+      if: always()
+      shell: pwsh
+      run: |
+        coverage html
+        coverage report > ${env:COVERAGE_REPORT_FILE}
+        Compress-Archive -Path htmlcov -DestinationPath htmlcov.zip
+
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      continue-on-error: true
+      with:
+        name: htmlcov
+        path: payments/htmlcov.zip
+
+    - name: Add coverage report to summary
+      if: always()
+      shell: pwsh
+      run: |
+        echo '### 🧪 Test Coverage Summary' >> ${env:GITHUB_STEP_SUMMARY}
+        echo '```' >> ${env:GITHUB_STEP_SUMMARY}
+        cat ${env:COVERAGE_REPORT_FILE} >> ${env:GITHUB_STEP_SUMMARY}
+        echo '```' >> ${env:GITHUB_STEP_SUMMARY}
+
+    - name: Add mypy results to summary
+      if: always()
+      shell: pwsh
+      run: |
+        echo '### ✅ Static Analysis Summary' >> ${env:GITHUB_STEP_SUMMARY}
+        echo '```' >> ${env:GITHUB_STEP_SUMMARY}
+        mypy . --strict --ignore-missing-imports >> ${env:GITHUB_STEP_SUMMARY}
+        echo '```' >> ${env:GITHUB_STEP_SUMMARY}
+
+    - name: Add pyright results to summary
+      if: always()
+      shell: pwsh
+      run: |
+        echo '### ✅ Pyright Summary' >> ${env:GITHUB_STEP_SUMMARY}
+        echo '```' >> ${env:GITHUB_STEP_SUMMARY}
+        pyright >> ${env:GITHUB_STEP_SUMMARY}
+        echo '```' >> ${env:GITHUB_STEP_SUMMARY}
