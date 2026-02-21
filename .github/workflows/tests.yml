@@ -7,7 +7,7 @@ on:
 
 env:
   COVERAGE_REPORT_FILE: coverage.txt
-  REMOTE_DIR: /home/uploader/upload/incoming
+  REMOTE_DIR: upload/incoming
   COVERAGE_ARCHIVE: coverage.zip
   REPORTS_TS_HOST: 100.127.93.3
   REPORTS_TS_PORT: 2222
