@@ -594,7 +594,7 @@ class Browser(Chrome):
         try:
             print(f'Tag name: {element.tag_name}')
             print(f'Text content: {element.text}')
-            print(f'Attributes:')
+            print('Attributes:')
             attributes = cast(list[dict[str, Any]], cast(object, element.get_property('attributes')))
             for attribute in attributes:
                 print(f'  - {attribute["name"]} = {attribute["value"]}')
