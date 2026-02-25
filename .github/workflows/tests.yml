@@ -83,8 +83,7 @@ jobs:
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
     - name: Add mypy results to summary
-      if: false
-#      if: always()
+      if: always()
       shell: pwsh
       run: |
         echo '### ✅ Static Analysis Summary' >> ${env:GITHUB_STEP_SUMMARY}
@@ -93,8 +92,7 @@ jobs:
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
     - name: Add pyright results to summary
-      if: false
-#      if: always()
+      if: always()
       shell: pwsh
       run: |
         echo '### ✅ Pyright Summary' >> ${env:GITHUB_STEP_SUMMARY}
@@ -103,8 +101,7 @@ jobs:
         echo '```' >> ${env:GITHUB_STEP_SUMMARY}
 
     - name: Add ruff results to summary
-      if: false
-#      if: always()
+      if: always()
       shell: pwsh
       run: |
         echo '### ✅ Ruff Summary' >> ${env:GITHUB_STEP_SUMMARY}
