@@ -9,8 +9,6 @@ env:
   COVERAGE_REPORT_FILE: coverage.txt
   REMOTE_DIR: upload/incoming
   COVERAGE_ARCHIVE: coverage.zip
-  REPORTS_TS_HOST: 100.127.93.3
-  REPORTS_TS_PORT: 2222
 
 jobs:
   test:
@@ -124,8 +122,8 @@ jobs:
     - name: Upload coverage archive via SFTP
       shell: bash
       env:
-        SFTP_HOST: ${{ env.REPORTS_TS_HOST }}
-        SFTP_PORT: ${{ env.REPORTS_TS_PORT }}   # np. 22
+        SFTP_HOST: ${{ secrets.REPORTS_TS_HOST }}
+        SFTP_PORT: ${{ secrets.REPORTS_TS_PORT }}   # np. 22
         SFTP_USER: ${{ secrets.REPORTS_USER }}   # np. uploader
 
       run: |
