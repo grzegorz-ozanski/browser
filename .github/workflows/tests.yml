@@ -123,7 +123,7 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.REPORTS_SSH_KEY }}
 
-    - name: Upload coverage archive via SFTP (pwsh, cross-platform)
+    - name: Upload coverage archive via SFTP
       shell: bash
       env:
         SFTP_HOST: ${{ env.REPORTS_TS_HOST }}
