@@ -29,6 +29,7 @@ def unpack(content: bytes, archive_dir: str, output_dir: str | Path) -> None:
     :param archive_dir: archive directory to be replaced with :param output_dir
     :param output_dir: value to replace the :param archive_dir with when unpacking the archive
     """
+    # noinspection PyTypeChecker
     with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
         for info in zip_file.infolist():
             if info.filename.startswith(archive_dir + '/') and not info.filename.endswith('/'):
