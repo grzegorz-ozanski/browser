@@ -507,37 +507,52 @@ class Browser(Chrome):
         """
 
         timeout = self._timeout(timeout)
-        script = '''
-            return new Promise(resolve => {
-                const observer = new MutationObserver(mutations => {
-                    // Use a timer to detect when mutations have stopped for 1 second
-                    if (window._mutationTimer) {
-                        clearTimeout(window._mutationTimer);
-                    }
-                    window._mutationTimer = setTimeout(() => {
-                        observer.disconnect();
-                        resolve(true);
-                    }, 1000);
-                });
-                observer.observe(document.body, {
-                    childList: true, 
-                    attributes: true,
-                    subtree: true
-                });
-                // Set a timeout for the maximum wait time
-                setTimeout(() => {
-                    observer.disconnect();
-                    resolve(false);
-                }, ''' + str(timeout * 1000) + ''');
-            });
-        '''
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(self.execute_script, script)
-            try:
-                return future.result(timeout=timeout + 2)
-            except concurrent.futures.TimeoutError:
-                log.debug('Timeout %d second(s) expired waiting for page to become inactive!', timeout)
-                return False
+        self.set_script_timeout(timeout + 2)
+
+        script = """
+        const done = arguments[arguments.length - 1];
+
+        let finished = false;
+        let quietTimer = null;
+
+        function finish(result) {
+            if (finished) return;
+            finished = true;
+            if (quietTimer) {
+                clearTimeout(quietTimer);
+            }
+            observer.disconnect();
+            done(result);
+        }
+
+        function armQuietTimer() {
+            if (quietTimer) {
+                clearTimeout(quietTimer);
+            }
+            quietTimer = setTimeout(() => finish(true), 1000);
+        }
+
+        const observer = new MutationObserver(() => {
+            armQuietTimer();
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            attributes: true,
+            subtree: true
+        });
+
+        // ważne: start liczenia ciszy od razu
+        armQuietTimer();
+
+        setTimeout(() => finish(false), %d);
+        """ % (timeout * 1000)
+
+        try:
+            return bool(self.execute_async_script(script))
+        except Exception:
+            log.debug("Timeout %d second(s) expired waiting for page to become inactive!", timeout)
+            return False
 
     def wait_for_page_load_completed(self) -> None:
         """
