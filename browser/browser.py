@@ -1,7 +1,6 @@
 """
     Wrapper class for Selenium Webdriver
 """
-import concurrent.futures
 import os
 import signal
 import subprocess
@@ -11,7 +10,8 @@ from time import sleep, monotonic
 from typing import Any, Callable, cast
 
 from selenium.common.exceptions import (TimeoutException, StaleElementReferenceException,
-                                        ElementClickInterceptedException, NoSuchElementException)
+                                        ElementClickInterceptedException, NoSuchElementException,
+                                        WebDriverException)
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -550,7 +550,7 @@ class Browser(Chrome):
 
         try:
             return bool(self.execute_async_script(script))
-        except Exception:
+        except (TimeoutException, WebDriverException):
             log.debug("Timeout %d second(s) expired waiting for page to become inactive!", timeout)
             return False
 
