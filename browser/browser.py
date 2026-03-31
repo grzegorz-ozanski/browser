@@ -41,6 +41,7 @@ class Browser(Chrome):
         """
         self.options = options
         self.dirty = False
+        self.debug_clicks = os.getenv('PAYMENTS_DEBUG_CLICK', '0') == '1'
 
         log.debug('Creating new Chrome instance with parameters: "%s"', options)
 
@@ -95,7 +96,9 @@ class Browser(Chrome):
         webelement = self.wait_for_page_element(locator, timeout)
         if not webelement:
             raise NoSuchElementException
+        self._log_click_diagnostics('click_page_element:before', webelement)
         webelement.click()
+        self._log_post_click_state('click_page_element:after')
 
     def click_element_using_js(self, element: WebElement) -> None:
         """
@@ -103,7 +106,9 @@ class Browser(Chrome):
 
         :param element: WebElement to click
         """
+        self._log_click_diagnostics('click_element_using_js:before', element)
         self._execute_javascript('arguments[0].click()', element)
+        self._log_post_click_state('click_element_using_js:after')
 
     def click_element_with_retry(self, element: WebElement, by: str, value: str,
                                  timeout: int | None = None) -> None:
@@ -122,10 +127,13 @@ class Browser(Chrome):
             log.debug('Pre element.click')
             try:
                 exception_occurred = False
+                self._log_click_diagnostics('click_element_with_retry:before', element)
                 element.click()
                 log.debug('Post element.click')
+                self._log_post_click_state('click_element_with_retry:after')
             except ElementClickInterceptedException:
                 log.debug('ElementClickInterceptedException occured while clicking %s', element)
+                self._log_post_click_state('click_element_with_retry:intercepted')
                 exception_occurred = True
                 pass
             except StaleElementReferenceException:
@@ -133,6 +141,7 @@ class Browser(Chrome):
                     raise TimeoutException(f'Timeout expired waiting for refreshed element ("{by}", "{value}")!')
                 exception_occurred = True
                 log.debug('StaleElementReferenceException occured while clicking %s', element)
+                self._log_post_click_state('click_element_with_retry:stale')
                 element = refreshed
             sleep(0.5)
 
@@ -334,7 +343,9 @@ class Browser(Chrome):
         # we do want to create a trace dump on any exception
         # noinspection PyBroadException
         try:
+            self._log_click_diagnostics('trace_click:before', element)
             element.click()
+            self._log_post_click_state('trace_click:after')
         except Exception:
             timestamp = datetime.today().isoformat(sep=' ', timespec='milliseconds').replace(':', '-')
             file_name = f'{timestamp} {element.tag_name} error.png'
@@ -344,6 +355,7 @@ class Browser(Chrome):
             print(f'Tag: {element.tag_name}')
             print(f'HTML: {element.get_attribute("outerHTML")}')
             print(f'Text: {element.text}')
+            self._log_post_click_state('trace_click:error')
             if not ignore_exception:
                 raise
 
@@ -573,6 +585,64 @@ class Browser(Chrome):
         """
         # Ignore 'mypy --strict' error on a library function
         return self.execute_script(script, *args)  # type: ignore[no-untyped-call]
+
+    def _log_click_diagnostics(self, stage: str, element: WebElement) -> None:
+        if not self.debug_clicks:
+            return
+        try:
+            details = cast(dict[str, Any], self._execute_javascript(
+                '''
+                const element = arguments[0];
+                const rect = element.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const atPoint = document.elementFromPoint(centerX, centerY);
+                return {
+                    url: window.location.href,
+                    readyState: document.readyState,
+                    hasFocus: document.hasFocus(),
+                    tagName: element.tagName,
+                    text: element.innerText,
+                    href: element.getAttribute('href'),
+                    onclick: element.getAttribute('onclick'),
+                    outerHTML: element.outerHTML,
+                    rect: {
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    },
+                    elementAtPoint: atPoint ? atPoint.outerHTML : null
+                };
+                ''',
+                element
+            ))
+            log.warning('CLICK DEBUG %s %s', stage, details)
+        except Exception as ex:
+            log.warning('CLICK DEBUG %s failed: %s: %s', stage, ex.__class__.__name__, ex)
+
+    def _log_post_click_state(self, stage: str) -> None:
+        if not self.debug_clicks:
+            return
+        for delay in (0.0, 0.2, 1.0):
+            if delay:
+                sleep(delay)
+            try:
+                details = cast(dict[str, Any], self._execute_javascript(
+                    '''
+                    return {
+                        url: window.location.href,
+                        readyState: document.readyState,
+                        hasFocus: document.hasFocus(),
+                        activeTag: document.activeElement ? document.activeElement.tagName : null,
+                        title: document.title
+                    };
+                    '''
+                ))
+                log.warning('CLICK DEBUG %s +%.1fs %s', stage, delay, details)
+            except Exception as ex:
+                log.warning('CLICK DEBUG %s +%.1fs failed: %s: %s',
+                            stage, delay, ex.__class__.__name__, ex)
 
     def _force_kill_driver_tree(self) -> None:
         # noinspection PyBroadException
