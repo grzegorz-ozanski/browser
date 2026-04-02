@@ -111,6 +111,17 @@ class Browser(Chrome):
         self._execute_javascript('arguments[0].click()', element)
         self._log_post_click_state('click_element_using_js:after')
 
+    def click_page_element_using_js(self, locator: Locator) -> None:
+        """
+        Force click an element, ignoring any elements that may overlap it.
+
+        :param locator: Locator to click
+        """
+        element = self.find_page_element(locator)
+        self._log_click_diagnostics('click_element_using_js:before', element)
+        self._execute_javascript('arguments[0].click()', element)
+        self._log_post_click_state('click_element_using_js:after')
+
     def click_element_with_retry(self, element: WebElement, by: str, value: str,
                                  timeout: int | None = None) -> None:
         """
