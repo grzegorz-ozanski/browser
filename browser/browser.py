@@ -42,6 +42,7 @@ class Browser(Chrome):
         self.options = options
         self.dirty = False
         self.debug_clicks = os.getenv('PAYMENTS_DEBUG_CLICK', '0') == '1'
+        self.debug_click_focus = os.getenv('PAYMENTS_DEBUG_CLICK_FOCUS', '0') == '1'
 
         log.debug('Creating new Chrome instance with parameters: "%s"', options)
 
@@ -590,14 +591,14 @@ class Browser(Chrome):
         if not self.debug_clicks:
             return
         try:
-            details = cast(dict[str, Any], self._execute_javascript(
-                '''
+            script = '''
                 const element = arguments[0];
+                const includeFocusState = arguments[1];
                 const rect = element.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
                 const atPoint = document.elementFromPoint(centerX, centerY);
-                return {
+                const details = {
                     url: window.location.href,
                     readyState: document.readyState,
                     hasFocus: document.hasFocus(),
@@ -614,9 +615,25 @@ class Browser(Chrome):
                     },
                     elementAtPoint: atPoint ? atPoint.outerHTML : null
                 };
-                ''',
-                element
-            ))
+                if (includeFocusState) {
+                    details.visibilityState = document.visibilityState;
+                    details.hidden = document.hidden;
+                    details.navigatorWebdriver = navigator.webdriver;
+                    details.activeElementOuterHTML = document.activeElement ? document.activeElement.outerHTML : null;
+                    details.windowRect = {
+                        innerWidth: window.innerWidth,
+                        innerHeight: window.innerHeight,
+                        outerWidth: window.outerWidth,
+                        outerHeight: window.outerHeight
+                    };
+                    details.screen = {
+                        width: window.screen.width,
+                        height: window.screen.height
+                    };
+                }
+                return details;
+                '''
+            details = cast(dict[str, Any], self._execute_javascript(script, element, self.debug_click_focus))
             log.warning('CLICK DEBUG %s %s', stage, details)
         except Exception as ex:
             log.warning('CLICK DEBUG %s failed: %s: %s', stage, ex.__class__.__name__, ex)
@@ -628,17 +645,34 @@ class Browser(Chrome):
             if delay:
                 sleep(delay)
             try:
-                details = cast(dict[str, Any], self._execute_javascript(
-                    '''
-                    return {
+                script = '''
+                    const includeFocusState = arguments[0];
+                    const details = {
                         url: window.location.href,
                         readyState: document.readyState,
                         hasFocus: document.hasFocus(),
                         activeTag: document.activeElement ? document.activeElement.tagName : null,
                         title: document.title
                     };
+                    if (includeFocusState) {
+                        details.visibilityState = document.visibilityState;
+                        details.hidden = document.hidden;
+                        details.navigatorWebdriver = navigator.webdriver;
+                        details.activeElementOuterHTML = document.activeElement ? document.activeElement.outerHTML : null;
+                        details.windowRect = {
+                            innerWidth: window.innerWidth,
+                            innerHeight: window.innerHeight,
+                            outerWidth: window.outerWidth,
+                            outerHeight: window.outerHeight
+                        };
+                        details.screen = {
+                            width: window.screen.width,
+                            height: window.screen.height
+                        };
+                    }
+                    return details;
                     '''
-                ))
+                details = cast(dict[str, Any], self._execute_javascript(script, self.debug_click_focus))
                 log.warning('CLICK DEBUG %s +%.1fs %s', stage, delay, details)
             except Exception as ex:
                 log.warning('CLICK DEBUG %s +%.1fs failed: %s: %s',
