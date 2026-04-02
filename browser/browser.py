@@ -346,7 +346,6 @@ class Browser(Chrome):
             self._log_click_diagnostics('trace_click:before', element)
             element.click()
             self._log_post_click_state('trace_click:after')
-            self._log_debug_anchor_js_click_probe('trace_click', element)
         except Exception:
             timestamp = datetime.today().isoformat(sep=' ', timespec='milliseconds').replace(':', '-')
             file_name = f'{timestamp} {element.tag_name} error.png'
@@ -645,27 +644,6 @@ class Browser(Chrome):
                 log.warning('CLICK DEBUG %s +%.1fs failed: %s: %s',
                             stage, delay, ex.__class__.__name__, ex)
 
-    def _log_debug_anchor_js_click_probe(self, stage: str, element: WebElement) -> None:
-        if not self.debug_clicks:
-            return
-        try:
-            href = element.get_attribute('href')
-            if not href:
-                return
-            current_url = self.current_url
-            if current_url != href:
-                return
-            log.warning('CLICK DEBUG %s native click did not navigate, probing JS click for href=%s', stage, href)
-            self._execute_javascript('arguments[0].click()', element)
-            self._log_post_click_state(f'{stage}:after-js-probe')
-            try:
-                self.back()
-                self._log_post_click_state(f'{stage}:after-js-probe-back')
-            except Exception as ex:
-                log.warning('CLICK DEBUG %s JS probe back failed: %s: %s',
-                            stage, ex.__class__.__name__, ex)
-        except Exception as ex:
-            log.warning('CLICK DEBUG %s JS probe failed: %s: %s', stage, ex.__class__.__name__, ex)
 
     def _force_kill_driver_tree(self) -> None:
         # noinspection PyBroadException
