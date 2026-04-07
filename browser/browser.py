@@ -715,25 +715,29 @@ class Browser(Chrome):
         return timeout or self.options.timeout
 
     @staticmethod
-    def dump_element(element: WebElement | None) -> None:
+    def dump_element(element: WebElement | None) -> str:
         """
         Dump web element data
         :param element: WebElement
         """
         if element is None:
-            return
+            return ''
         try:
-            print(f'Tag name: {element.tag_name}')
-            print(f'Text content: {element.text}')
-            print('Attributes:')
+            retval = f'''Tag name: {element.tag_name}
+Text content: {element.text}
+Attributes:
+'''
             attributes = cast(list[dict[str, Any]], cast(object, element.get_property('attributes')))
             for attribute in attributes:
-                print(f'  - {attribute["name"]} = {attribute["value"]}')
-            print(f'Location on page: {element.location}')
-            print(f'Size: {element.size}')
+                retval += f'  - {attribute["name"]} = {attribute["value"]}'
+            retval += f'''Location on page: {element.location}
+Size: {element.size}
+'''
+            return retval
         except Exception as ex:
             print(f'Exception occured while gathering detailed information for element {element}. '
                   f'Details:\n{ex.__class__.__name__}:{str(ex)}')
+            return ''
 
     @staticmethod
     def _is_not_obscured(element: WebElement) -> Callable[['Browser'], bool | WebElement]:
