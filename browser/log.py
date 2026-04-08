@@ -111,9 +111,8 @@ class WebLogger(logging.Logger):
         """
         if WebLogger._BROWSER is None:
             raise RuntimeError('Cannot create web logs: browser is not set.')
-        if not WebLogger._BROWSER.options.save_trace_logs:
-            return None
-        self._capture(self.TRACE, reason=reason)
+        if WebLogger._BROWSER.options.save_trace_logs:
+            self._capture(self.TRACE, reason=reason)
 
     @classmethod
     @contextmanager
