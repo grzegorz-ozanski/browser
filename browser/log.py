@@ -1,14 +1,16 @@
 """
     Browser logging setup
 """
+import atexit
 import inspect
 import logging
 import os
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import TracebackType
-from typing import cast, TYPE_CHECKING, Iterator, TypeAlias
+from typing import cast, TYPE_CHECKING, Iterator, TypeAlias, Mapping
 
 from .logconfig import LOG_CONFIG
 
@@ -25,6 +27,101 @@ ExcInfo: TypeAlias = (
         | BaseException
 )
 
+@dataclass
+class HtmlLogger:
+    """
+    HTML logging data.
+    """
+    header: str = '''<!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: "Mona Sans VF", "Mona Sans", -apple-system, BlinkMacSystemFont,
+                         "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif,
+                         "Apple Color Emoji", "Segoe UI Emoji";
+            font-size: 16px;
+            line-height: 1.5;
+            font-weight: 400;
+            color: #24292f;
+          }
+          details > summary {
+            cursor: pointer;
+            list-style: none;
+          }
+          details > summary:hover {
+            background-color: rgba(208, 215, 222, 0.4);
+          }
+          details > summary::-webkit-details-marker {
+            display: none;
+          }
+          details > summary::after {
+            content: "▶";
+            display: inline-block;
+             margin-left: 4px; 
+            font-family: "Segoe UI Symbol", "Noto Sans Symbols", "Segoe UI", sans-serif;
+            color: #2da44e;
+            font-size: 1.1em;
+            line-height: 1;
+            transform-origin: center;
+            transition: transform 0.15s ease;
+          }
+          details[open] > summary::after {
+            transform: rotate(90deg);
+          }
+          details > pre {
+            font-size: 14px;
+            line-height: 1.25;
+            font-weight: 400;
+          }
+        </style>
+      </head>
+     <body>
+    '''
+    footer: str = '''\
+      </body>
+    </html>
+    '''
+    content: str = ''
+    file: str | None = None
+    in_group: bool = False
+    def start_group(self, name: str) -> None:
+        self.content += f'''<details>
+ <summary>{name}</summary><pre>'''
+        self.in_group = True
+
+    def end_group(self) -> None:
+        self.content += '</pre></details>'
+        self.in_group = False
+
+    def append(self, message: str) -> None:
+        self.content += f'{message}<br/>'
+
+    def save(self) -> None:
+        if not self.file:
+            return
+        with open(self.file, 'w', encoding='utf-8') as writer:
+            writer.write(self.header)
+            writer.write(self.content)
+            writer.write(self.footer)
+
+_HTML_LOGGER: HtmlLogger = HtmlLogger()
+
+def html_logger(file_name: str | None = None) -> HtmlLogger:
+    """
+
+    :return: HTML logger object
+    """
+    global _HTML_LOGGER
+    if file_name and not _HTML_LOGGER.file:
+        _HTML_LOGGER.file = file_name
+    atexit.register(_HTML_LOGGER.save)
+    return _HTML_LOGGER
+
+class HtmlHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        msg = self.format(record)
+        html_logger().append(msg)
 
 class WebLogger(logging.Logger):
     """
@@ -77,7 +174,7 @@ class WebLogger(logging.Logger):
     # --- public API ---
 
     def trace(self,
-              message: object,
+              message: str,
               *args: object,
               exc_info: ExcInfo | None = None,
               stack_info: bool = False,
@@ -138,9 +235,11 @@ class WebLogger(logging.Logger):
         try:
             cls._GROUP_NAME = name
             cls._COUNTERS = {}
+            html_logger().start_group(name)
             yield
         finally:
             cls._GROUP_NAME = None
+            html_logger().end_group()
 
     # --- internals ---
     def _name(self) -> str:
@@ -323,6 +422,9 @@ def setup_logging(name: str) -> WebLogger:
         handlers.append(_setup_handler(logging.FileHandler(LOG_CONFIG.file, encoding='utf-8'),
                                        LOG_CONFIG.level,
                                        LOG_CONFIG.formatting))
+    handlers.append(_setup_handler(HtmlHandler(),
+                                   LOG_CONFIG.level,
+                                   LOG_CONFIG.formatting))
     for handler in handlers:
         logger.addHandler(handler)
 
