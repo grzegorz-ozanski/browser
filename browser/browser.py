@@ -6,6 +6,7 @@ import signal
 import subprocess
 import threading
 from datetime import datetime
+from pathlib import Path
 from time import sleep, monotonic
 from typing import Any, Callable, cast
 
@@ -28,7 +29,6 @@ from .page_element import PageElement
 
 log = setup_logging(__name__)
 
-
 class Browser(Chrome):
     """
     Chrome driver extension
@@ -40,6 +40,7 @@ class Browser(Chrome):
         :param options: Browser options
         """
         self.options = options
+        self._assert_profile_free()
         self.dirty = False
         self.debug_clicks = os.getenv('PAYMENTS_DEBUG_CLICK', '0') == '1'
         self.debug_click_focus = os.getenv('PAYMENTS_DEBUG_CLICK_FOCUS', '0') == '1'
@@ -587,6 +588,18 @@ class Browser(Chrome):
             state = self._execute_javascript('return document.readyState')
             log.debug('Page load state == %s', state)
             sleep(0.1)
+
+    def _assert_profile_free(self):
+        """
+        Check if Chrome profile is not locked
+        :param profile_path: profile path
+        """
+        profile_path = Path(self.options.profile.path)
+        lock_file = profile_path / "lockfile"
+
+        if lock_file.exists():
+            raise RuntimeError(f"Chrome profile is locked! "
+                               f"Probably previous Chrome instance is still running.")
 
     def _execute_javascript(self, script: str, *args: Any) -> Any:
         """
