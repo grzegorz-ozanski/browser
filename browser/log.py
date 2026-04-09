@@ -2,6 +2,8 @@
     Browser logging setup
 """
 import atexit
+import base64
+import html
 import inspect
 import logging
 import os
@@ -10,7 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import TracebackType
-from typing import cast, TYPE_CHECKING, Iterator, TypeAlias, Mapping
+from typing import cast, TYPE_CHECKING, Iterator, TypeAlias
 
 from .logconfig import LOG_CONFIG
 
@@ -69,6 +71,9 @@ class HtmlLogger:
           details[open] > summary::after {
             transform: rotate(90deg);
           }
+          details.no-arrow > summary::after {
+            display: none;
+          }
           details > pre {
             font-size: 14px;
             line-height: 1.25;
@@ -86,18 +91,59 @@ class HtmlLogger:
     file: str | None = None
     in_group: bool = False
     def start_group(self, name: str) -> None:
+        """
+        Starts a new log group.
+        :param name: log group name
+        """
         self.content += f'''<details>
  <summary>{name}</summary><pre>'''
         self.in_group = True
 
     def end_group(self) -> None:
+        """
+        Closes log group
+        """
         self.content += '</pre></details>'
         self.in_group = False
 
-    def append(self, message: str) -> None:
-        self.content += f'{message}<br/>'
+    def append(self, text: str, raw: bool = False) -> None:
+        """
+        Appends text to log.
+        :param text: text to append
+        :param raw: True if test is raw HTML
+        """
+        if raw:
+            self.content += text
+            return
+        self.content += f'{html.escape(text)}<br/>'
+
+    def append_embedded_image(self, image_path: str | Path, caption: str = '') -> None:
+        """
+        Appends base64-encoded image to the log
+        :param image_path: path to the image
+        :param caption: caption for the image
+        """
+        path = Path(image_path)
+        encoded = base64.b64encode(path.read_bytes()).decode('ascii')
+        escaped_caption = html.escape(f'Screenshot {caption or path.name}')
+        self.append(
+            f'''
+<details class="no-arrow">
+  <summary style="font-weight: 600;">{escaped_caption}</summary>
+  <div>
+    <img
+      src="data:image/png;base64,{encoded}"
+      alt="{escaped_caption}"
+      style="max-width: 100%; height: auto; border: 1px solid #d0d7de; border-radius: 6px;"
+    />
+  </div>
+</details>
+''', raw=True)
 
     def save(self) -> None:
+        """
+        Saves logs to HTML file
+        """
         if not self.file:
             return
         with open(self.file, 'w', encoding='utf-8') as writer:
@@ -115,11 +161,18 @@ def html_logger(file_name: str | None = None) -> HtmlLogger:
     global _HTML_LOGGER
     if file_name and not _HTML_LOGGER.file:
         _HTML_LOGGER.file = file_name
-    atexit.register(_HTML_LOGGER.save)
+        atexit.register(_HTML_LOGGER.save)
     return _HTML_LOGGER
 
 class HtmlHandler(logging.Handler):
+    """
+    Handler for HTML logs
+    """
     def emit(self, record: logging.LogRecord) -> None:
+        """
+        Adds log record to HTML logs
+        :param record: record to add
+        """
         msg = self.format(record)
         html_logger().append(msg)
 
@@ -260,12 +313,13 @@ class WebLogger(logging.Logger):
             filename = self._next_filename(level=level, reason=reason)
 
             full_path = target_dir / filename
-            png = Path(f'{full_path}{self._PNG}')
-            html = Path(f'{full_path}{self._HTML}')
+            png_file = Path(f'{full_path}{self._PNG}')
+            html_file = Path(f'{full_path}{self._HTML}')
 
             # Actual writes:
-            WebLogger._BROWSER.save_screenshot(str(png))
-            html.write_text(WebLogger._BROWSER.page_source, encoding=self._ENCODING)
+            WebLogger._BROWSER.save_screenshot(str(png_file))
+            html_file.write_text(WebLogger._BROWSER.page_source, encoding=self._ENCODING)
+            html_logger().append_embedded_image(png_file, caption=filename)
 
         except OSError:
             log.exception('Cannot create log entry')
@@ -283,6 +337,8 @@ class WebLogger(logging.Logger):
                 level += 1
                 f_locals = stack[level].frame.f_locals
             self._callstack_level = level
+        # supress overzealous inspector - variable is always initialized in the code block above
+        # noinspection PyTypeChecker
         return stack[self._callstack_level]
 
     def _get_caller(self) -> str:
