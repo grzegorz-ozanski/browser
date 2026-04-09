@@ -37,6 +37,7 @@ class HtmlLogger:
     header: str = '''<!DOCTYPE html>
     <html>
       <head>
+        <meta charset="utf-8"/>
         <style>
           body {
             font-family: "Mona Sans VF", "Mona Sans", -apple-system, BlinkMacSystemFont,
@@ -58,7 +59,7 @@ class HtmlLogger:
             display: none;
           }
           details > summary::after {
-            content: "▶";
+            content: "\\25B6";
             display: inline-block;
              margin-left: 4px; 
             font-family: "Segoe UI Symbol", "Noto Sans Symbols", "Segoe UI", sans-serif;
