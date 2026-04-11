@@ -51,6 +51,7 @@ class LogConfig:
         if isinstance(logging.getLevelName(value), int):
             return value
         raise RuntimeError(f'Invalid log level specified in BROWSER_LOG_LEVEL: "{value}"')
+
     initialized: bool = False
 
 
