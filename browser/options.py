@@ -21,18 +21,18 @@ class BrowserOptions:
     SEP = ', '
 
     def __init__(self,
-                 root_path: str,
-                 headless: bool,
-                 save_trace_logs: bool,
-                 chrome_path: str,
+                 headless: bool = False,
+                 save_trace_logs: bool = False,
+                 profile_dir: str = '',
                  persistent_profile: bool = False,
-                 persistent_profile_dir: str = '',
                  profile_name: str = PROFILE_NAME,
+                 chromedriver_path: str  = '',
+                 chrome_path: str  = '',
                  timeout: int = 10,
                  renderer_timeout: int = 10) -> None:
         """
         Class construstor
-        :param root_path: Chromediver root path
+        :param chromedriver_path: Chromediver root path
         :param headless: run Chrome browser in headless mode
         :param save_trace_logs: if 'True', trace logs on page elements operations are saved
         :param chrome_path: Chrome path override
@@ -57,9 +57,9 @@ class BrowserOptions:
         self.save_trace_logs = save_trace_logs
         self.timeout = timeout
         self.renderer_timeout = renderer_timeout
-        self._configure_chromedriver_location(root_path, chrome_path)
+        self._configure_chromedriver_location(chromedriver_path, chrome_path)
         # Another remedy for reCatcha v3
-        self.profile = Profile(profile_name, persistent_profile_dir or tempfile.gettempdir(), persistent_profile)
+        self.profile = Profile(profile_name, profile_dir or tempfile.gettempdir(), persistent_profile)
         self.error_log_dir = 'error'
 
     @property
@@ -77,7 +77,7 @@ class BrowserOptions:
         """
         return self.SEP.join([f'{name}={value}' for name, value in self.__dict__.items()])
 
-    def _configure_chromedriver_location(self, root_path: str, chrome_path: str) -> None:
+    def _configure_chromedriver_location(self, chromedriver_path: str, chrome_path: str ) -> None:
         """
         Configure a Chrome/Chromedriver path per operating system. Expectedy folder layout:
         root_path/
@@ -86,13 +86,13 @@ class BrowserOptions:
                 └── chrome/
                     ├── <chrome files>
                     └── chrome[.exe]
-        :param root_path: Chrome/Chromedriver root path
+        :param chromedriver_path: Chrome/Chromedriver root path
         :param chrome_path: Chrome path override
         """
         if self.platform_info.system_is('Darwin'):  # running on macOS
             self.chromedriver_location = '/Users/greggor/Downloads/chromedriver'
         if self.platform_info.system_is('Linux', 'Windows'):
-            chromedriver_root = Path(root_path).parent.joinpath('chromedriver')
+            chromedriver_root = Path(chromedriver_path) / 'chromedriver'
             if not chromedriver_root.exists():
                 print(f'Chromedriver not found in "{chromedriver_root}", downloading...')
                 chrome_downloader = ChromeDownloader(self.platform_info.platform)
