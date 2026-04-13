@@ -589,7 +589,7 @@ class Browser(Chrome):
             log.debug('Page load state == %s', state)
             sleep(0.1)
 
-    def _assert_profile_free(self):
+    def _assert_profile_free(self) -> None:
         """
         Check if Chrome profile is not locked
         :param profile_path: profile path
