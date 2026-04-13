@@ -598,8 +598,8 @@ class Browser(Chrome):
         lock_file = profile_path / "lockfile"
 
         if lock_file.exists():
-            raise RuntimeError(f"Chrome profile is locked! "
-                               f"Probably previous Chrome instance is still running.")
+            raise RuntimeError("Chrome profile is locked! "
+                               "Probably previous Chrome instance is still running.")
 
     def _execute_javascript(self, script: str, *args: Any) -> Any:
         """
