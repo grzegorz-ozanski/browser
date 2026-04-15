@@ -20,8 +20,19 @@ class Locator:
         """
         if self.type != By.XPATH:
             raise RuntimeError(f'Cannot find parent for non-XPATH locator {self}')
-        return self.__class__(self.type, f'{self.value}/..')
+        return self.relative('..')
+
+    def relative(self, rel_path: str) -> Self:
+        """
+        Return the locator relative to the current locator.
+        :param rel_path: relative path
+        :return: locator relative to the current locator
+        """
+        if self.type != By.XPATH:
+            raise RuntimeError(f'Cannot create relative locator for non-XPATH locator {self}')
+        return self.__class__(self.type, f'{self.value}/{rel_path}')
 
     def __repr__(self) -> str:
         """String representation of the locator."""
         return f'[({self.type}) {self.value}]'
+
