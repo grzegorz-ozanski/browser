@@ -205,6 +205,19 @@ class Browser(Chrome):
         """
         self.click_element_with_retry_using_js(element, locator.type, locator.value, timeout)
 
+    def close_other(self) -> None:
+        """
+        Close all the other browser tabs
+        """
+        current = self.current_window_handle
+
+        for handle in self.window_handles:
+            if handle != current:
+                self.switch_to.window(handle)
+                self.close()
+
+        self.switch_to.window(current)
+
     def find_and_click_page_element_using_js(self, locator: Locator) -> None:
         """
         Finds and force click an element, ignoring any elements that may overlap it
